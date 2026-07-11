@@ -1,3 +1,28 @@
+  function eventElementFromTarget(target) {
+    if (target && typeof target.closest === 'function') return target;
+    if (target?.parentElement && typeof target.parentElement.closest === 'function') return target.parentElement;
+    return null;
+  }
+
+  function eventClosest(target, selector, root = null) {
+    const element = eventElementFromTarget(target);
+    const match = element?.closest(selector) || null;
+    if (match && root && !root.contains(match)) return null;
+    return match;
+  }
+
+  function bindRemoteListActions(panel) {
+    qsa('#nai-remoteChannels, #nai-remoteLogs, #nai-remoteUsers', panel).forEach((host) => {
+      host.addEventListener('click', (event) => {
+        const action = eventClosest(event.target, '[data-nai-remote-action]', host);
+        if (!action) return;
+        event.preventDefault();
+        event.stopPropagation();
+        handleRemoteListAction(action);
+      });
+    });
+  }
+
   function remoteActionButton(label, action, kind, index, variant = '') {
     return `
       <button type="button" class="nai-remote-action-button" data-variant="${escapeHtml(variant)}" data-nai-remote-action="${escapeHtml(action)}" data-kind="${escapeHtml(kind)}" data-index="${escapeHtml(index)}">
@@ -191,8 +216,7 @@
       </section>
     `;
     dialog.addEventListener('click', (event) => {
-      if (!(event.target instanceof Element)) return;
-      const action = event.target.closest('[data-nai-remote-action]');
+      const action = eventClosest(event.target, '[data-nai-remote-action]', dialog);
       if (action) {
         handleRemoteListAction(action);
         return;

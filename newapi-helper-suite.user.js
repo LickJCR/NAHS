@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.7.7
+// @version      0.7.8
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
 // @author       LickJCR
 // @license      MIT
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.7.7';
+  const SCRIPT_VERSION = '0.7.8';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
@@ -3969,6 +3969,7 @@
     qs('[data-nai-refresh-remote-channels]', panel).addEventListener('click', loadRemoteChannels);
     qs('[data-nai-refresh-remote-logs]', panel).addEventListener('click', loadRemoteLogs);
     qs('[data-nai-refresh-remote-users]', panel).addEventListener('click', loadRemoteUsers);
+    bindRemoteListActions(panel);
     qs('[data-nai-refresh-site]', panel).addEventListener('click', () => {
       updateSiteInfo();
       appendLog('已刷新站点信息。');
@@ -4000,43 +4001,44 @@
     });
 
     panel.addEventListener('click', (event) => {
-      if (!(event.target instanceof Element)) return;
-      const keyTab = event.target.closest('[data-nai-key-tab]');
+      const target = eventElementFromTarget(event.target);
+      if (!target) return;
+      const keyTab = target.closest('[data-nai-key-tab]');
       if (keyTab) {
         setKeyTab(keyTab.getAttribute('data-nai-key-tab') || 'list');
         return;
       }
-      const modeChoice = event.target.closest('[data-nai-mode-choice]');
+      const modeChoice = target.closest('[data-nai-mode-choice]');
       if (modeChoice) {
         setOperationMode(modeChoice.getAttribute('data-nai-mode-choice') || 'choose');
         return;
       }
-      const remoteTab = event.target.closest('[data-nai-remote-tab]');
+      const remoteTab = target.closest('[data-nai-remote-tab]');
       if (remoteTab) {
         setRemoteTab(remoteTab.getAttribute('data-nai-remote-tab') || 'bulk');
         return;
       }
-      const removeRemoteSite = event.target.closest('[data-nai-remove-remote-site]');
+      const removeRemoteSite = target.closest('[data-nai-remove-remote-site]');
       if (removeRemoteSite) {
         removeRemoteSiteById(removeRemoteSite.getAttribute('data-nai-remove-remote-site') || '');
         return;
       }
-      const remoteSite = event.target.closest('[data-nai-remote-site]');
+      const remoteSite = target.closest('[data-nai-remote-site]');
       if (remoteSite) {
         selectRemoteSite(remoteSite.getAttribute('data-nai-remote-site') || '');
         return;
       }
-      const remoteAction = event.target.closest('[data-nai-remote-action]');
+      const remoteAction = target.closest('[data-nai-remote-action]');
       if (remoteAction) {
         handleRemoteListAction(remoteAction);
         return;
       }
-      const jobTab = event.target.closest('[data-nai-job-tab]');
+      const jobTab = target.closest('[data-nai-job-tab]');
       if (jobTab) {
         setJobTab(jobTab.getAttribute('data-nai-job-tab') || 'stats');
         return;
       }
-      if (event.target.closest('[data-nai-name-add-segment]')) {
+      if (target.closest('[data-nai-name-add-segment]')) {
         const config = collectConfig(false);
         config.nameSegments = normalizeNameSegments(config.nameSegments, config);
         if (config.nameSegments.length < MAX_NAME_SEGMENTS) config.nameSegments.push('');
@@ -4045,7 +4047,7 @@
         refreshPreview();
         return;
       }
-      const remove = event.target.closest('[data-nai-name-remove]');
+      const remove = target.closest('[data-nai-name-remove]');
       if (remove) {
         const config = collectConfig(false);
         const index = Number.parseInt(remove.getAttribute('data-nai-name-remove') || '-1', 10);
@@ -4845,6 +4847,31 @@
     updateJobControls();
   }
 
+  function eventElementFromTarget(target) {
+    if (target && typeof target.closest === 'function') return target;
+    if (target?.parentElement && typeof target.parentElement.closest === 'function') return target.parentElement;
+    return null;
+  }
+
+  function eventClosest(target, selector, root = null) {
+    const element = eventElementFromTarget(target);
+    const match = element?.closest(selector) || null;
+    if (match && root && !root.contains(match)) return null;
+    return match;
+  }
+
+  function bindRemoteListActions(panel) {
+    qsa('#nai-remoteChannels, #nai-remoteLogs, #nai-remoteUsers', panel).forEach((host) => {
+      host.addEventListener('click', (event) => {
+        const action = eventClosest(event.target, '[data-nai-remote-action]', host);
+        if (!action) return;
+        event.preventDefault();
+        event.stopPropagation();
+        handleRemoteListAction(action);
+      });
+    });
+  }
+
   function remoteActionButton(label, action, kind, index, variant = '') {
     return `
       <button type="button" class="nai-remote-action-button" data-variant="${escapeHtml(variant)}" data-nai-remote-action="${escapeHtml(action)}" data-kind="${escapeHtml(kind)}" data-index="${escapeHtml(index)}">
@@ -5038,8 +5065,7 @@
       </section>
     `;
     dialog.addEventListener('click', (event) => {
-      if (!(event.target instanceof Element)) return;
-      const action = event.target.closest('[data-nai-remote-action]');
+      const action = eventClosest(event.target, '[data-nai-remote-action]', dialog);
       if (action) {
         handleRemoteListAction(action);
         return;

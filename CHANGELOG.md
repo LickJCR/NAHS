@@ -4,6 +4,10 @@
 
 - No unreleased changes.
 
+## 0.7.8
+
+- Fix remote channel, log, and user list action buttons so detail dialogs and channel editing open reliably from dynamically rendered table rows.
+
 ## 0.7.7
 
 - Make the top-bar reset clear remote-mode saved sites, remote connection status, remote config fields, list caches, and workspace data instead of only clearing the batch workspace.

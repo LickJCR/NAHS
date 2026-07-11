@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.5.2
+// @version      0.5.3
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
 // @author       al90slj23
 // @license      MIT
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.5.2';
+  const SCRIPT_VERSION = '0.5.3';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
@@ -948,27 +948,59 @@
         gap: 12px;
       }
 
-      .nai-pane-left {
-        display: grid;
-        grid-template-rows: auto auto auto minmax(0, 1fr) auto auto auto;
+      .nai-pane-half {
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
         overflow: hidden;
       }
 
-      .nai-pane-left > .nai-pane-card {
-        grid-row: 5;
+      .nai-pane-left {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+        overflow: hidden;
       }
 
-      .nai-pane-left > .nai-key-tabs {
-        grid-row: 6;
+      .nai-left-input {
+        overflow: auto;
       }
 
-      .nai-pane-left > .nai-key-tab-panel {
-        grid-row: 7;
+      .nai-left-input .nai-bulk-field {
+        min-height: 0;
+      }
+
+      #nai-keys {
+        height: 118px;
+        min-height: 88px;
+        max-height: 220px;
+        resize: vertical;
+      }
+
+      .nai-left-workspace > .nai-key-tab-panel {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+        overflow: auto;
       }
 
       .nai-pane-center {
         display: grid;
-        grid-template-rows: auto auto minmax(0, 1fr) auto;
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+        overflow: hidden;
+      }
+
+      .nai-center-top {
+        overflow: auto;
+      }
+
+      .nai-center-monitor > .nai-pane-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
         overflow: hidden;
       }
 
@@ -2005,6 +2037,9 @@
           display: flex;
           overflow: auto;
         }
+        .nai-pane-half {
+          overflow: visible;
+        }
         .nai-bulk-group-panel,
         .nai-template-row,
         .nai-job-controls,
@@ -2362,119 +2397,119 @@
       <div class="nai-bulk-body">
         <div class="nai-workbench">
           <aside class="nai-pane nai-pane-left">
-            <div class="nai-step">
-              <div class="nai-step-kicker">第一步</div>
-              <div class="nai-step-title">批量添加 key</div>
-              <div class="nai-step-desc">粘贴后点击添加入库；key 池会保留历史，直到你点击顶栏重置。</div>
-            </div>
-            <div class="nai-bulk-field">
-              <label for="nai-keys">key 库，批量粘贴/追加</label>
-              <textarea id="nai-keys" data-nai-sensitive placeholder="sk-ant-...&#10;或 JSON 数组、逗号分隔、key=value、带序号/引号的列表&#10;&#10;入库后会进入当前工作记录；导出工作会包含 key 池，用于迁移后继续执行。"></textarea>
-            </div>
-            <div class="nai-bulk-actions nai-key-add-actions">
-              <button type="button" class="nai-bulk-action nai-bulk-action-primary" data-nai-add-keys>添加入库</button>
-            </div>
-
-            <div class="nai-pane-card">
-              <div class="nai-pane-title">
-                <span>key 池信息</span>
-                <small id="nai-keyPoolUpdated">未入库</small>
+            <section class="nai-pane-half nai-left-input">
+              <div class="nai-step">
+                <div class="nai-step-kicker">第一步</div>
+                <div class="nai-step-title">批量添加 key</div>
+                <div class="nai-step-desc">粘贴后点击添加入库；key 池会保留历史，直到你点击顶栏重置。</div>
               </div>
-              <div id="nai-keyPoolSummary" class="nai-key-summary"></div>
-            </div>
+              <div class="nai-bulk-field">
+                <label for="nai-keys">key 库，批量粘贴/追加</label>
+                <textarea id="nai-keys" data-nai-sensitive placeholder="sk-ant-...&#10;或 JSON 数组、逗号分隔、key=value、带序号/引号的列表&#10;&#10;入库后会进入当前工作记录；导出工作会包含 key 池，用于迁移后继续执行。"></textarea>
+              </div>
+              <div class="nai-bulk-actions nai-key-add-actions">
+                <button type="button" class="nai-bulk-action nai-bulk-action-primary" data-nai-add-keys>添加入库</button>
+              </div>
+            </section>
 
-            <div class="nai-key-tabs" data-nai-key-tabs>
-              <button type="button" class="nai-key-tab" data-nai-key-tab="list" data-active="true">key 库列表</button>
-              <button type="button" class="nai-key-tab" data-nai-key-tab="stats" data-active="false">key 库统计</button>
-            </div>
-            <div id="nai-keyListPanel" class="nai-key-tab-panel"></div>
-            <div id="nai-keyStatsPanel" class="nai-key-tab-panel" hidden></div>
+            <section class="nai-pane-half nai-left-workspace">
+              <div class="nai-key-tabs" data-nai-key-tabs>
+                <button type="button" class="nai-key-tab" data-nai-key-tab="list" data-active="true">key 库列表</button>
+                <button type="button" class="nai-key-tab" data-nai-key-tab="stats" data-active="false">key 库统计</button>
+              </div>
+              <div id="nai-keyListPanel" class="nai-key-tab-panel"></div>
+              <div id="nai-keyStatsPanel" class="nai-key-tab-panel" hidden></div>
+            </section>
           </aside>
 
           <main class="nai-pane nai-pane-center">
-            <div class="nai-step">
-              <div class="nai-step-kicker">第二步</div>
-              <div class="nai-step-title">添加作业参数</div>
-              <div class="nai-step-desc">右侧只用于新建和预览作业；已创建的作业不直接编辑，变更配置会按新输入新建作业。</div>
-            </div>
+            <section class="nai-pane-half nai-center-top">
+              <div class="nai-step">
+                <div class="nai-step-kicker">第二步</div>
+                <div class="nai-step-title">添加作业参数</div>
+                <div class="nai-step-desc">右侧只用于新建和预览作业；已创建的作业不直接编辑，变更配置会按新输入新建作业。</div>
+              </div>
 
-            <div class="nai-pane-card">
-              <div class="nai-job-status">
-                <div>
-                  <strong id="nai-jobTitle">暂无作业</strong>
-                  <span id="nai-jobStatusText" class="nai-job-status-text">当前状态：未开始</span>
+              <div class="nai-pane-card">
+                <div class="nai-job-status">
+                  <div>
+                    <strong id="nai-jobTitle">暂无作业</strong>
+                    <span id="nai-jobStatusText" class="nai-job-status-text">当前状态：未开始</span>
+                  </div>
+                  <button type="button" class="nai-bulk-small-button" data-nai-open-params>创建作业参数</button>
                 </div>
-                <button type="button" class="nai-bulk-small-button" data-nai-open-params>创建作业参数</button>
-              </div>
-              <div id="nai-jobEmptyState" class="nai-job-empty">
-                尚未创建作业。先点击“创建作业参数”，在右侧配置作业名称、类型、模型、分组、名称组合和策略，然后点击“保存创建作业”。
-              </div>
-              <div id="nai-jobRuntimeSection" class="nai-bulk-section nai-job-runtime" hidden>
-                <div class="nai-job-strategy-row">
-                  <label class="nai-bulk-check">
-                    <input id="nai-runtime-autoRefill" type="checkbox" data-nai-runtime-check="autoRefill"${config.autoRefill ? ' checked' : ''}>
-                    <span>自动</span>
-                  </label>
-                  <div class="nai-job-strategy-field">
-                    <label for="nai-runtime-targetAliveSize">保活</label>
-                    <input id="nai-runtime-targetAliveSize" data-nai-runtime-field="targetAliveSize" inputmode="numeric" value="${escapeHtml(config.targetAliveSize)}">
-                  </div>
-                  <div class="nai-job-strategy-field">
-                    <label for="nai-runtime-aliveThreshold">低于</label>
-                    <input id="nai-runtime-aliveThreshold" data-nai-runtime-field="aliveThreshold" inputmode="numeric" value="${escapeHtml(config.aliveThreshold)}">
-                  </div>
-                  <div class="nai-job-strategy-field">
-                    <label for="nai-runtime-replenishBatchSize">添加</label>
-                    <input id="nai-runtime-replenishBatchSize" data-nai-runtime-field="replenishBatchSize" inputmode="numeric" value="${escapeHtml(config.replenishBatchSize)}">
-                  </div>
-                  <div class="nai-job-strategy-field">
-                    <label for="nai-runtime-monitorIntervalSec">监控间隔</label>
-                    <input id="nai-runtime-monitorIntervalSec" data-nai-runtime-field="monitorIntervalSec" inputmode="numeric" value="${escapeHtml(config.monitorIntervalSec)}">
-                    <span class="nai-job-strategy-unit">秒</span>
-                  </div>
-                  <button type="button" class="nai-bulk-small-button nai-job-strategy-apply" data-nai-apply-strategy data-dirty="false" disabled>应用策略</button>
+                <div id="nai-jobEmptyState" class="nai-job-empty">
+                  尚未创建作业。先点击“创建作业参数”，在右侧配置作业名称、类型、模型、分组、名称组合和策略，然后点击“保存创建作业”。
                 </div>
-                <div id="nai-jobActionBar" class="nai-bulk-actions nai-job-actionbar">
-                  <button type="button" class="nai-bulk-action nai-bulk-action-primary" data-nai-toggle-job>
-                    <span class="nai-action-icon" aria-hidden="true">⏸</span>
-                    <span>暂停作业</span>
-                  </button>
-                  <button type="button" class="nai-bulk-action" data-nai-refresh-job>
-                    <span class="nai-action-icon" aria-hidden="true">↻</span>
-                    <span>刷新状态</span>
-                  </button>
+                <div id="nai-jobRuntimeSection" class="nai-bulk-section nai-job-runtime" hidden>
+                  <div class="nai-job-strategy-row">
+                    <label class="nai-bulk-check">
+                      <input id="nai-runtime-autoRefill" type="checkbox" data-nai-runtime-check="autoRefill"${config.autoRefill ? ' checked' : ''}>
+                      <span>自动</span>
+                    </label>
+                    <div class="nai-job-strategy-field">
+                      <label for="nai-runtime-targetAliveSize">保活</label>
+                      <input id="nai-runtime-targetAliveSize" data-nai-runtime-field="targetAliveSize" inputmode="numeric" value="${escapeHtml(config.targetAliveSize)}">
+                    </div>
+                    <div class="nai-job-strategy-field">
+                      <label for="nai-runtime-aliveThreshold">低于</label>
+                      <input id="nai-runtime-aliveThreshold" data-nai-runtime-field="aliveThreshold" inputmode="numeric" value="${escapeHtml(config.aliveThreshold)}">
+                    </div>
+                    <div class="nai-job-strategy-field">
+                      <label for="nai-runtime-replenishBatchSize">添加</label>
+                      <input id="nai-runtime-replenishBatchSize" data-nai-runtime-field="replenishBatchSize" inputmode="numeric" value="${escapeHtml(config.replenishBatchSize)}">
+                    </div>
+                    <div class="nai-job-strategy-field">
+                      <label for="nai-runtime-monitorIntervalSec">监控间隔</label>
+                      <input id="nai-runtime-monitorIntervalSec" data-nai-runtime-field="monitorIntervalSec" inputmode="numeric" value="${escapeHtml(config.monitorIntervalSec)}">
+                      <span class="nai-job-strategy-unit">秒</span>
+                    </div>
+                    <button type="button" class="nai-bulk-small-button nai-job-strategy-apply" data-nai-apply-strategy data-dirty="false" disabled>应用策略</button>
+                  </div>
+                  <div id="nai-jobActionBar" class="nai-bulk-actions nai-job-actionbar">
+                    <button type="button" class="nai-bulk-action nai-bulk-action-primary" data-nai-toggle-job>
+                      <span class="nai-action-icon" aria-hidden="true">⏸</span>
+                      <span>暂停作业</span>
+                    </button>
+                    <button type="button" class="nai-bulk-action" data-nai-refresh-job>
+                      <span class="nai-action-icon" aria-hidden="true">↻</span>
+                      <span>刷新状态</span>
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
+            </section>
 
-            <div class="nai-pane-card">
-              <div class="nai-job-tabs" data-nai-job-tabs>
-                <button type="button" class="nai-job-tab" data-nai-job-tab="stats" data-active="true">作业统计</button>
-                <button type="button" class="nai-job-tab" data-nai-job-tab="batches" data-active="false">批次记录</button>
-                <button type="button" class="nai-job-tab" data-nai-job-tab="logs" data-active="false">作业日志</button>
-              </div>
-              <div id="nai-jobStatsPanel" class="nai-job-tab-panel">
-                <div class="nai-pane-title" style="margin-top: 10px;">
-                  <span>作业统计</span>
-                  <small>监控中即时刷新</small>
+            <section class="nai-pane-half nai-center-monitor">
+              <div class="nai-pane-card">
+                <div class="nai-job-tabs" data-nai-job-tabs>
+                  <button type="button" class="nai-job-tab" data-nai-job-tab="stats" data-active="true">作业统计</button>
+                  <button type="button" class="nai-job-tab" data-nai-job-tab="batches" data-active="false">批次记录</button>
+                  <button type="button" class="nai-job-tab" data-nai-job-tab="logs" data-active="false">作业日志</button>
                 </div>
-                <div id="nai-jobStats" class="nai-job-stats"></div>
-              </div>
-              <div id="nai-jobBatchesPanel" class="nai-job-tab-panel" hidden>
-                <div class="nai-pane-title" style="margin-top: 10px;">
-                  <span>批次记录</span>
-                  <small>作业补批和创建批次</small>
+                <div id="nai-jobStatsPanel" class="nai-job-tab-panel">
+                  <div class="nai-pane-title" style="margin-top: 10px;">
+                    <span>作业统计</span>
+                    <small>监控中即时刷新</small>
+                  </div>
+                  <div id="nai-jobStats" class="nai-job-stats"></div>
                 </div>
-                <div id="nai-jobBatches" class="nai-job-batches"></div>
-              </div>
-              <div id="nai-jobLogsPanel" class="nai-job-tab-panel" hidden>
-                <div class="nai-pane-title" style="margin-top: 10px;">
-                  <span>作业日志</span>
-                  <button type="button" class="nai-bulk-small-button" data-nai-export-job>导出日志</button>
+                <div id="nai-jobBatchesPanel" class="nai-job-tab-panel" hidden>
+                  <div class="nai-pane-title" style="margin-top: 10px;">
+                    <span>批次记录</span>
+                    <small>作业补批和创建批次</small>
+                  </div>
+                  <div id="nai-jobBatches" class="nai-job-batches"></div>
                 </div>
-                <div id="nai-log" class="nai-bulk-log">Ready.</div>
+                <div id="nai-jobLogsPanel" class="nai-job-tab-panel" hidden>
+                  <div class="nai-pane-title" style="margin-top: 10px;">
+                    <span>作业日志</span>
+                    <button type="button" class="nai-bulk-small-button" data-nai-export-job>导出日志</button>
+                  </div>
+                  <div id="nai-log" class="nai-bulk-log">Ready.</div>
+                </div>
               </div>
-            </div>
+            </section>
           </main>
 
           <aside class="nai-pane nai-pane-right">
@@ -3909,8 +3944,6 @@
     const attempted = entries.filter((entry) => entry.attemptedAt).length;
     const latestAdded = entries.map((entry) => entry.addedAt).filter(Boolean).sort().at(-1);
     const firstAdded = entries.map((entry) => entry.addedAt).filter(Boolean).sort()[0] || '';
-    const batchCount = state.activeJob?.batches?.length || 0;
-    const lastBatch = state.activeJob?.batches?.at(-1);
     const durationMs = firstAdded ? Date.now() - Date.parse(firstAdded) : 0;
     return {
       total: entries.length,
@@ -3923,29 +3956,14 @@
       attempted,
       latestAdded,
       firstAdded,
-      batchCount,
-      lastBatch,
       durationMs,
     };
   }
 
   function updateKeyPoolView() {
-    const summary = qs('#nai-keyPoolSummary');
-    const updated = qs('#nai-keyPoolUpdated');
     const listPanel = qs('#nai-keyListPanel');
     const statsPanel = qs('#nai-keyStatsPanel');
     const stats = keyStatusSummary();
-    if (updated) {
-      updated.textContent = stats.latestAdded ? `最近 ${formatLocalDateTime(stats.latestAdded)}` : '未入库';
-    }
-    if (summary) {
-      summary.innerHTML = [
-        statCardHtml('总 key', String(stats.total)),
-        statCardHtml('未使用', String(stats.unused)),
-        statCardHtml('存活', String(stats.alive)),
-        statCardHtml('死亡/失败', `${stats.dead}/${stats.failed}`),
-      ].join('');
-    }
     if (listPanel) {
       const rows = state.keyPool.slice(-80).reverse().map((entry) => `
         <div class="nai-key-row">
@@ -3958,9 +3976,6 @@
         : '<div class="nai-bulk-help" style="padding: 10px;">暂无 key。左上粘贴并点击添加入库后会显示在这里。</div>';
     }
     if (statsPanel) {
-      const lastBatchText = stats.lastBatch
-        ? `#${stats.lastBatch.no} ${formatLocalDateTime(stats.lastBatch.startedAt)}`
-        : '-';
       statsPanel.innerHTML = `
         <div class="nai-key-summary">
           ${statCardHtml('总 key', String(stats.total))}
@@ -3971,8 +3986,6 @@
           ${statCardHtml('创建中', String(stats.creating))}
           ${statCardHtml('已创建', String(stats.created))}
           ${statCardHtml('创建失败', String(stats.failed))}
-          ${statCardHtml('批次数', String(stats.batchCount))}
-          ${statCardHtml('最近批次', lastBatchText)}
           ${statCardHtml('key 池持续', formatDuration(stats.durationMs))}
           ${statCardHtml('首次入库', formatLocalDateTime(stats.firstAdded))}
           ${statCardHtml('最近入库', formatLocalDateTime(stats.latestAdded))}

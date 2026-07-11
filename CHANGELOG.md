@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.3
+
+- Split the left and center workbench panes into fixed upper/lower halves.
+- Move key pool summary into the key pool stats tab and keep the lower-left area dedicated to key list/stats.
+- Limit the key input textarea resize height so it cannot compress the key list/stat area.
+
 ## 0.5.2
 
 - Rename the left-side stats tab to key pool stats.

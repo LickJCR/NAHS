@@ -4,6 +4,11 @@
 
 - No unreleased changes.
 
+## 0.7.9
+
+- Render remote channel, log, and user details with NewAPI-style Chinese fields instead of raw API keys or JSON dumps.
+- Remove the visible raw JSON editor from the remote channel edit dialog while preserving field-based channel updates.
+
 ## 0.7.8
 
 - Fix remote channel, log, and user list action buttons so detail dialogs and channel editing open reliably from dynamically rendered table rows.

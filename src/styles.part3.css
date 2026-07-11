@@ -134,23 +134,14 @@
         font-weight: 750;
       }
 
-      .nai-remote-detail-value span,
-      .nai-remote-detail-value pre,
-      .nai-remote-json-block pre {
+      .nai-remote-detail-value span {
         margin: 0;
         white-space: pre-wrap;
         overflow-wrap: anywhere;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
-      .nai-remote-json-block {
-        margin-top: 12px;
-        padding: 12px;
-        border: 1px solid rgba(255, 255, 255, .1);
-        border-radius: 8px;
-        background: #11100f;
-        color: #cfcac2;
-        font-size: 12px;
+      .nai-remote-detail-long {
+        line-height: 1.55;
       }
 
       .nai-remote-edit-grid {

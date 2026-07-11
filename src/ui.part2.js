@@ -788,9 +788,9 @@
   }
 
   function userRoleLabel(role) {
-    if (Number(role) === 100) return 'Root';
-    if (Number(role) === 10) return 'Admin';
-    if (Number(role) === 1) return 'User';
+    if (Number(role) === 100) return '超级管理员';
+    if (Number(role) === 10) return '管理员';
+    if (Number(role) === 1) return '普通用户';
     return role === null || role === undefined || role === '' ? '-' : String(role);
   }
 
@@ -873,7 +873,7 @@
         remoteHtmlCell(remoteStack(remoteValue(log, 'username') || '-', remoteValue(log, 'user_id', 'userId') ? `ID: ${remoteValue(log, 'user_id', 'userId')}` : '')),
         remoteHtmlCell(remoteStack(remoteValue(log, 'token_name', 'tokenName') || '-', remoteValue(log, 'group') || '')),
         remoteHtmlCell(remoteBadge(remoteValue(log, 'model_name', 'modelName', 'model') || '-')),
-        remoteHtmlCell(remoteStack(formatUseSeconds(useTime), remoteValue(log, 'is_stream', 'isStream') ? 'Stream' : (useTime ? 'Non-stream' : ''))),
+        remoteHtmlCell(remoteStack(formatUseSeconds(useTime), remoteValue(log, 'is_stream', 'isStream') ? '流' : (useTime ? '非流' : ''))),
         remoteHtmlCell(remoteStack(`${formatRemoteQuota(remoteValue(log, 'prompt_tokens', 'promptTokens') || 0)} / ${formatRemoteQuota(remoteValue(log, 'completion_tokens', 'completionTokens') || 0)}`, '')),
         remoteCell(formatRemoteQuota(firstNonEmpty(remoteValue(log, 'quota'), remoteValue(log, 'use_quota', 'useQuota'), remoteValue(log, 'used_quota', 'usedQuota'), remoteValue(log, 'cost')))),
         remoteHtmlCell(remoteStack(firstNonEmpty(remoteValue(log, 'content'), remoteValue(log, 'detail'), remoteValue(log, 'details'), remoteValue(log, 'message')) || '-', requestId || ''), 'nai-remote-wrap-cell'),

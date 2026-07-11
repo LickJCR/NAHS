@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.7.8
+// @version      0.7.9
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
 // @author       LickJCR
 // @license      MIT
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.7.8';
+  const SCRIPT_VERSION = '0.7.9';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
@@ -3027,23 +3027,14 @@
         font-weight: 750;
       }
 
-      .nai-remote-detail-value span,
-      .nai-remote-detail-value pre,
-      .nai-remote-json-block pre {
+      .nai-remote-detail-value span {
         margin: 0;
         white-space: pre-wrap;
         overflow-wrap: anywhere;
-        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
       }
 
-      .nai-remote-json-block {
-        margin-top: 12px;
-        padding: 12px;
-        border: 1px solid rgba(255, 255, 255, .1);
-        border-radius: 8px;
-        background: #11100f;
-        color: #cfcac2;
-        font-size: 12px;
+      .nai-remote-detail-long {
+        line-height: 1.55;
       }
 
       .nai-remote-edit-grid {
@@ -4657,9 +4648,9 @@
   }
 
   function userRoleLabel(role) {
-    if (Number(role) === 100) return 'Root';
-    if (Number(role) === 10) return 'Admin';
-    if (Number(role) === 1) return 'User';
+    if (Number(role) === 100) return '超级管理员';
+    if (Number(role) === 10) return '管理员';
+    if (Number(role) === 1) return '普通用户';
     return role === null || role === undefined || role === '' ? '-' : String(role);
   }
 
@@ -4742,7 +4733,7 @@
         remoteHtmlCell(remoteStack(remoteValue(log, 'username') || '-', remoteValue(log, 'user_id', 'userId') ? `ID: ${remoteValue(log, 'user_id', 'userId')}` : '')),
         remoteHtmlCell(remoteStack(remoteValue(log, 'token_name', 'tokenName') || '-', remoteValue(log, 'group') || '')),
         remoteHtmlCell(remoteBadge(remoteValue(log, 'model_name', 'modelName', 'model') || '-')),
-        remoteHtmlCell(remoteStack(formatUseSeconds(useTime), remoteValue(log, 'is_stream', 'isStream') ? 'Stream' : (useTime ? 'Non-stream' : ''))),
+        remoteHtmlCell(remoteStack(formatUseSeconds(useTime), remoteValue(log, 'is_stream', 'isStream') ? '流' : (useTime ? '非流' : ''))),
         remoteHtmlCell(remoteStack(`${formatRemoteQuota(remoteValue(log, 'prompt_tokens', 'promptTokens') || 0)} / ${formatRemoteQuota(remoteValue(log, 'completion_tokens', 'completionTokens') || 0)}`, '')),
         remoteCell(formatRemoteQuota(firstNonEmpty(remoteValue(log, 'quota'), remoteValue(log, 'use_quota', 'useQuota'), remoteValue(log, 'used_quota', 'usedQuota'), remoteValue(log, 'cost')))),
         remoteHtmlCell(remoteStack(firstNonEmpty(remoteValue(log, 'content'), remoteValue(log, 'detail'), remoteValue(log, 'details'), remoteValue(log, 'message')) || '-', requestId || ''), 'nai-remote-wrap-cell'),
@@ -4957,7 +4948,7 @@
         remoteHtmlCell(remoteStack(remoteValue(log, 'username') || '-', remoteValue(log, 'user_id', 'userId') ? `ID: ${remoteValue(log, 'user_id', 'userId')}` : '')),
         remoteHtmlCell(remoteStack(remoteValue(log, 'token_name', 'tokenName') || '-', remoteValue(log, 'group') || '')),
         remoteHtmlCell(remoteBadge(remoteValue(log, 'model_name', 'modelName', 'model') || '-')),
-        remoteHtmlCell(remoteStack(formatUseSeconds(useTime), remoteValue(log, 'is_stream', 'isStream') ? 'Stream' : (useTime ? 'Non-stream' : ''))),
+        remoteHtmlCell(remoteStack(formatUseSeconds(useTime), remoteValue(log, 'is_stream', 'isStream') ? '流' : (useTime ? '非流' : ''))),
         remoteHtmlCell(remoteStack(`${formatRemoteQuota(remoteValue(log, 'prompt_tokens', 'promptTokens') || 0)} / ${formatRemoteQuota(remoteValue(log, 'completion_tokens', 'completionTokens') || 0)}`, '')),
         remoteCell(formatRemoteQuota(firstNonEmpty(remoteValue(log, 'quota'), remoteValue(log, 'use_quota', 'useQuota'), remoteValue(log, 'used_quota', 'usedQuota'), remoteValue(log, 'cost')))),
         remoteHtmlCell(remoteStack(firstNonEmpty(remoteValue(log, 'content'), remoteValue(log, 'detail'), remoteValue(log, 'details'), remoteValue(log, 'message')) || '-', requestId || ''), 'nai-remote-wrap-cell'),
@@ -5029,21 +5020,150 @@
     return `用户 #${remoteValue(record, 'id', 'uid') || '-'} ${remoteValue(record, 'username', 'name', 'email') || ''}`.trim();
   }
 
-  function remoteDetailValueHtml(value) {
-    if (value === null || value === undefined || value === '') return '<span class="nai-remote-muted">-</span>';
-    if (typeof value === 'object') {
-      return `<pre>${escapeHtml(JSON.stringify(value, null, 2))}</pre>`;
+  function logTypeText(type) {
+    const map = { 1: '充值', 2: '消费', 3: '管理', 4: '系统', 5: '错误', 6: '退款' };
+    return map[Number(type)] || '未知';
+  }
+
+  function channelStatusText(status) {
+    const map = { 1: '已启用', 2: '已禁用', 3: '自动禁用' };
+    return map[Number(status)] || '未知状态';
+  }
+
+  function userStatusText(user) {
+    if (remoteValue(user, 'DeletedAt', 'deleted_at')) return '已注销';
+    const map = { 1: '已启用', 2: '已禁用' };
+    return map[Number(remoteValue(user, 'status'))] || '未知状态';
+  }
+
+  function safeJsonObject(value) {
+    if (!value || typeof value !== 'string') return value && typeof value === 'object' ? value : {};
+    try {
+      const parsed = JSON.parse(value);
+      return parsed && typeof parsed === 'object' ? parsed : {};
+    } catch {
+      return {};
     }
+  }
+
+  function detailValue(value) {
+    if (value === null || value === undefined || value === '') return '<span class="nai-remote-muted">-</span>';
     return `<span>${escapeHtml(String(value))}</span>`;
   }
 
-  function remoteDetailRows(record) {
-    return Object.entries(record || {})
-      .filter(([key]) => !String(key).startsWith('__nahs'))
-      .map(([key, value]) => `
-        <div class="nai-remote-detail-key">${escapeHtml(key)}</div>
-        <div class="nai-remote-detail-value">${remoteDetailValueHtml(value)}</div>
+  function detailLongValue(value) {
+    if (value === null || value === undefined || value === '') return '<span class="nai-remote-muted">-</span>';
+    return `<span class="nai-remote-detail-long">${escapeHtml(String(value))}</span>`;
+  }
+
+  function detailRows(rows) {
+    return rows
+      .filter((row) => row && row[1] !== undefined && row[1] !== null && row[1] !== '')
+      .map(([label, value, options = {}]) => `
+        <div class="nai-remote-detail-key">${escapeHtml(label)}</div>
+        <div class="nai-remote-detail-value">${options.html ? value : detailValue(value)}</div>
       `).join('');
+  }
+
+  function operationParamsText(params = {}) {
+    if (!params || typeof params !== 'object') return '';
+    return [
+      ['名称', params.name],
+      ['类型', params.type ? channelTypeName(params.type) : ''],
+      ['数量', params.count],
+      ['分组', params.group],
+      ['模型', params.models],
+    ].filter(([, value]) => value !== undefined && value !== null && value !== '')
+      .map(([label, value]) => `${label}：${value}`).join('；');
+  }
+
+  function remoteLogDetailRows(record) {
+    const other = safeJsonObject(remoteValue(record, 'other'));
+    const admin = other.admin_info || {};
+    const op = other.op || {};
+    const useChannel = Array.isArray(admin.use_channel) ? admin.use_channel.join(' -> ') : '';
+    const cacheRead = Number(other.cache_tokens || 0);
+    const cacheCreate = Number(other.cache_creation_tokens || 0);
+    return detailRows([
+      ['时间', shortDateTime(remoteValue(record, 'created_at', 'created_time', 'createdTime', 'time'))],
+      ['类型', logTypeText(remoteValue(record, 'type'))],
+      ['用户', `${remoteValue(record, 'username') || '-'}${remoteValue(record, 'user_id', 'userId') ? ` (ID: ${remoteValue(record, 'user_id', 'userId')})` : ''}`],
+      ['渠道信息', `${remoteValue(record, 'channel', 'channel_id', 'channelId') || '-'} - ${remoteValue(record, 'channel_name', 'channelName') || '[未知]'}`],
+      ['令牌', remoteValue(record, 'token_name', 'tokenName')],
+      ['分组', firstNonEmpty(remoteValue(record, 'group'), other.group)],
+      ['模型', firstNonEmpty(remoteValue(record, 'model_name', 'modelName', 'model'), other.upstream_model_name)],
+      ['用时/首字', `${formatUseSeconds(remoteValue(record, 'use_time', 'useTime'))}${other.frt ? ` / ${(Number(other.frt) / 1000).toFixed(1)}s` : ''}`],
+      ['流模式', remoteValue(record, 'is_stream', 'isStream') ? '流' : '非流'],
+      ['输入', remoteValue(record, 'prompt_tokens', 'promptTokens') ?? 0],
+      ['输出', remoteValue(record, 'completion_tokens', 'completionTokens') ?? 0],
+      ['缓存 Tokens', cacheRead > 0 ? cacheRead : ''],
+      ['缓存创建 Tokens', cacheCreate > 0 ? cacheCreate : ''],
+      ['花费', formatRemoteQuota(firstNonEmpty(remoteValue(record, 'quota'), remoteValue(record, 'use_quota', 'useQuota'), remoteValue(record, 'used_quota', 'usedQuota'), remoteValue(record, 'cost')))],
+      ['IP', remoteValue(record, 'ip')],
+      ['请求 ID', firstNonEmpty(remoteValue(record, 'request_id', 'requestId'), remoteValue(record, 'upstream_request_id', 'upstreamRequestId'))],
+      ['详情', detailLongValue(firstNonEmpty(remoteValue(record, 'content'), remoteValue(record, 'detail'), remoteValue(record, 'details'), remoteValue(record, 'message'))), { html: true }],
+      ['请求路径', other.request_path],
+      ['重试渠道', useChannel],
+      ['请求转换', Array.isArray(other.request_conversion) && other.request_conversion.length ? other.request_conversion.join(' -> ') : ''],
+      ['计费模式', admin.local_count_tokens ? '本地计费' : (other.admin_info ? '上游返回' : '')],
+      ['操作管理员', admin.admin_username || admin.admin_id ? `${admin.admin_username || '-'}${admin.admin_id ? ` (ID: ${admin.admin_id})` : ''}` : ''],
+      ['认证方式', admin.auth_method],
+      ['操作', op.action],
+      ['操作参数', operationParamsText(op.params)],
+    ]);
+  }
+
+  function remoteChannelDetailRows(record) {
+    return detailRows([
+      ['ID', remoteValue(record, 'id', 'Id', 'ID')],
+      ['名称', remoteValue(record, 'name', 'Name')],
+      ['类型', channelTypeName(remoteValue(record, 'type', 'Type'))],
+      ['状态', channelStatusText(remoteValue(record, 'status', 'Status'))],
+      ['分组', remoteValue(record, 'group', 'Group')],
+      ['模型', detailLongValue(remoteValue(record, 'models', 'Models')), { html: true }],
+      ['上游地址', detailLongValue(remoteValue(record, 'base_url', 'baseUrl', 'BaseURL')), { html: true }],
+      ['优先级', remoteValue(record, 'priority', 'Priority') ?? 0],
+      ['权重', remoteValue(record, 'weight', 'Weight') ?? 0],
+      ['已用额度', formatRemoteQuota(remoteValue(record, 'used_quota', 'usedQuota', 'UsedQuota') || 0)],
+      ['剩余额度', formatRemoteQuota(remoteValue(record, 'balance', 'Balance') || 0)],
+      ['响应时间', formatResponseMs(remoteValue(record, 'response_time', 'responseTime', 'ResponseTime'))],
+      ['上次测试', shortDateTime(remoteValue(record, 'test_time', 'testTime', 'TestTime'))],
+      ['自动禁用', Number(remoteValue(record, 'auto_ban', 'autoBan')) === 0 ? '关闭' : '开启'],
+      ['标签', remoteValue(record, 'tag', 'Tag')],
+      ['备注', detailLongValue(remoteValue(record, 'remark', 'Remark')), { html: true }],
+      ['详情读取状态', remoteValue(record, '__nahsDetailError') ? `详情读取失败：${remoteValue(record, '__nahsDetailError')}` : ''],
+    ]);
+  }
+
+  function remoteUserDetailRows(record) {
+    const used = Number(remoteValue(record, 'used_quota', 'usedQuota') || 0);
+    const remain = Number(firstNonEmpty(remoteValue(record, 'quota'), remoteValue(record, 'remain_quota', 'remainQuota'), remoteValue(record, 'remaining_quota', 'remainingQuota'), remoteValue(record, 'balance')) || 0);
+    return detailRows([
+      ['ID', remoteValue(record, 'id', 'uid')],
+      ['用户名', firstNonEmpty(remoteValue(record, 'username'), remoteValue(record, 'name'), remoteValue(record, 'email'))],
+      ['显示名称', remoteValue(record, 'display_name', 'displayName')],
+      ['状态', userStatusText(record)],
+      ['角色', userRoleLabel(remoteValue(record, 'role'))],
+      ['分组', remoteValue(record, 'group')],
+      ['剩余额度', formatRemoteQuota(remain)],
+      ['已用额度', formatRemoteQuota(used)],
+      ['总额度', formatRemoteQuota(remain + used)],
+      ['请求次数', formatRemoteQuota(remoteValue(record, 'request_count', 'requestCount') || 0)],
+      ['邀请码', remoteValue(record, 'aff_code', 'affCode')],
+      ['邀请人数', remoteValue(record, 'aff_count', 'affCount') || 0],
+      ['邀请收益', formatRemoteQuota(remoteValue(record, 'aff_history_quota', 'affHistoryQuota') || 0)],
+      ['邀请人', remoteValue(record, 'inviter_id', 'inviterId') || '无邀请人'],
+      ['创建时间', shortDateTime(remoteValue(record, 'created_at', 'created_time', 'createdTime'))],
+      ['最后登录', shortDateTime(remoteValue(record, 'last_login_at', 'lastLoginAt'))],
+      ['备注', detailLongValue(remoteValue(record, 'remark')), { html: true }],
+    ]);
+  }
+
+  function remoteDetailRows(kind, record) {
+    if (kind === 'channels') return remoteChannelDetailRows(record);
+    if (kind === 'logs') return remoteLogDetailRows(record);
+    if (kind === 'users') return remoteUserDetailRows(record);
+    return '';
   }
 
   function openRemoteDialog(title, body, actions = '') {
@@ -5083,13 +5203,8 @@
     const record = remoteRecordByIndex(kind, index);
     if (!record) return;
     openRemoteDialog(remoteRecordTitle(kind, record), `
-      <div class="nai-remote-detail-grid">${remoteDetailRows(record)}</div>
-      <div class="nai-remote-json-block"><pre>${escapeHtml(JSON.stringify(record, null, 2))}</pre></div>
+      <div class="nai-remote-detail-grid">${remoteDetailRows(kind, record)}</div>
     `);
-  }
-
-  function remoteJsonForTextarea(value) {
-    return escapeHtml(JSON.stringify(value || {}, null, 2));
   }
 
   function channelEditForm(record, index) {
@@ -5110,7 +5225,6 @@
         <label><span>权重</span><input data-nai-channel-edit="weight" inputmode="numeric" value="${escapeHtml(remoteValue(record, 'weight', 'Weight') ?? 0)}"></label>
         <label><span>标签</span><input data-nai-channel-edit="tag" value="${escapeHtml(remoteValue(record, 'tag', 'Tag') || '')}"></label>
         <label><span>备注</span><input data-nai-channel-edit="remark" value="${escapeHtml(remoteValue(record, 'remark', 'Remark') || '')}"></label>
-        <label class="nai-remote-edit-json"><span>JSON</span><textarea data-nai-channel-edit-json>${remoteJsonForTextarea(record)}</textarea></label>
       </div>
     `;
   }
@@ -5126,15 +5240,8 @@
   function channelPayloadFromDialog(index) {
     const record = remoteRecordByIndex('channels', index) || {};
     const dialog = document.querySelector('.nai-remote-dialog');
-    const textarea = qs('[data-nai-channel-edit-json]', dialog);
-    let payload = {};
-    try {
-      payload = textarea?.value.trim() ? JSON.parse(textarea.value) : {};
-    } catch (err) {
-      throw new Error(`JSON 格式错误：${err.message}`);
-    }
     const read = (key) => qs(`[data-nai-channel-edit="${key}"]`, dialog)?.value;
-    payload = { ...record, ...payload };
+    const payload = { ...record };
     payload.id = remoteValue(payload, 'id', 'ID') || remoteValue(record, 'id', 'ID');
     payload.name = read('name') || payload.name;
     payload.type = Number(read('type') || payload.type || 0);

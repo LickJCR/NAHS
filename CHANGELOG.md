@@ -4,6 +4,10 @@
 
 - No unreleased changes.
 
+## 0.7.6
+
+- Switch userscript install and update URLs to the `refs/heads/main` raw path to avoid the older `/main/` raw CDN cache returning stale versions.
+
 ## 0.7.5
 
 - Fix current-browser mode hiding the bulk-add three-column workbench after selecting the local mode card.

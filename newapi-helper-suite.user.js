@@ -1,14 +1,14 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.7.5
+// @version      0.7.6
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
 // @author       LickJCR
 // @license      MIT
 // @homepageURL  https://github.com/LickJCR/NAHS
 // @supportURL   https://github.com/LickJCR/NAHS/issues
-// @downloadURL  https://raw.githubusercontent.com/LickJCR/NAHS/main/newapi-helper-suite.user.js
-// @updateURL    https://raw.githubusercontent.com/LickJCR/NAHS/main/newapi-helper-suite.user.js
+// @downloadURL  https://raw.githubusercontent.com/LickJCR/NAHS/refs/heads/main/newapi-helper-suite.user.js
+// @updateURL    https://raw.githubusercontent.com/LickJCR/NAHS/refs/heads/main/newapi-helper-suite.user.js
 // @match        http://*/*
 // @match        https://*/*
 // @run-at       document-idle
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.7.5';
+  const SCRIPT_VERSION = '0.7.6';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';

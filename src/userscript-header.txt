@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.6.1
+// @version      0.7.0
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
-// @author       al90slj23
+// @author       LickJCR
 // @license      MIT
 // @homepageURL  https://github.com/LickJCR/NAHS
 // @supportURL   https://github.com/LickJCR/NAHS/issues

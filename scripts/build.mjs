@@ -34,9 +34,19 @@ function injectStylesSource(css) {
 
 const header = trimTrailingNewlines(await readSource('src/userscript-header.txt'));
 const preamble = trimTrailingNewlines(await readSource('src/runtime/preamble.js'));
-const styles = await readSource('src/styles.css');
-const ui = trimTrailingNewlines(await readSource('src/ui.js'));
-const core = trimTrailingNewlines(await readSource('src/core.js'));
+const styles = [
+  await readSource('src/styles.part1.css'),
+  await readSource('src/styles.part2.css'),
+].join('\n');
+const ui = [
+  await readSource('src/ui.part1.js'),
+  await readSource('src/ui.part2.js'),
+].map(trimTrailingNewlines).join('\n\n');
+const core = [
+  await readSource('src/core.part1.js'),
+  await readSource('src/core.part2.js'),
+  await readSource('src/core.part3.js'),
+].map(trimTrailingNewlines).join('\n\n');
 const boot = trimTrailingNewlines(await readSource('src/runtime/boot.js'));
 
 const output = [

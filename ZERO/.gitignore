@@ -1,0 +1,40 @@
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
+
+# Node (if used)
+node_modules/
+
+# Python (if used)
+__pycache__/
+*.py[cod]
+.env
+venv/
+
+# PHP (if used)
+vendor/
+
+# Build outputs
+dist/
+build/

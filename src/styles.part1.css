@@ -1,0 +1,850 @@
+      .nai-bulk-button {
+        position: fixed;
+        right: 22px;
+        bottom: 24px;
+        z-index: 2147483646;
+        min-width: 138px;
+        min-height: 68px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: flex-start;
+        gap: 4px;
+        overflow: hidden;
+        border: 2px solid rgba(255, 190, 158, .95);
+        border-radius: 10px;
+        background: #e87046;
+        color: #1d100a;
+        font: 900 15px/1.15 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        padding: 13px 17px;
+        box-shadow:
+          0 18px 38px rgba(232, 112, 70, .38),
+          0 0 0 4px rgba(232, 112, 70, .18),
+          inset 0 0 0 1px rgba(29, 16, 10, .3);
+        cursor: grab;
+        touch-action: none;
+        user-select: none;
+      }
+
+      .nai-bulk-button::before {
+        content: "";
+        position: absolute;
+        inset: 5px;
+        border: 1px solid rgba(255, 238, 226, .42);
+        border-radius: 6px;
+        pointer-events: none;
+      }
+
+      .nai-bulk-button-main,
+      .nai-bulk-button-sub {
+        position: relative;
+        z-index: 1;
+      }
+
+      .nai-bulk-button-main {
+        letter-spacing: 0;
+      }
+
+      .nai-bulk-button-sub {
+        font-size: 11px;
+        letter-spacing: .08em;
+        text-transform: uppercase;
+        color: rgba(29, 16, 10, .82);
+      }
+
+      .nai-bulk-button:hover {
+        background: #f07f55;
+        box-shadow:
+          0 20px 42px rgba(232, 112, 70, .46),
+          0 0 0 5px rgba(232, 112, 70, .22),
+          inset 0 0 0 1px rgba(29, 16, 10, .34);
+      }
+
+      .nai-bulk-button[data-dragging="true"] {
+        cursor: grabbing;
+        transform: scale(.98);
+      }
+
+      .nai-bulk-panel {
+        position: fixed;
+        top: 20px;
+        right: 20px;
+        z-index: 2147483647;
+        width: min(1480px, calc(100vw - 40px));
+        max-height: calc(100vh - 40px);
+        overflow: hidden;
+        display: none;
+        color: #efeeeb;
+        background: #191817;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 10px;
+        box-shadow: 0 24px 72px rgba(0, 0, 0, .44);
+        font: 14px/1.45 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-bulk-panel[data-open="true"] {
+        display: flex;
+        flex-direction: column;
+      }
+
+      .nai-bulk-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        padding: 12px 16px;
+        border-bottom: 1px solid rgba(255, 255, 255, .1);
+      }
+
+      .nai-bulk-title {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 10px;
+        min-width: 0;
+      }
+
+      .nai-bulk-title strong {
+        font-size: 16px;
+        letter-spacing: 0;
+      }
+
+      .nai-bulk-title-line {
+        display: flex;
+        align-items: center;
+        flex-wrap: wrap;
+        gap: 7px;
+      }
+
+      .nai-bulk-header-separator {
+        width: 1px;
+        align-self: stretch;
+        min-height: 22px;
+        background: rgba(255, 255, 255, .18);
+      }
+
+      .nai-bulk-title-badge {
+        display: inline-flex;
+        align-items: center;
+        min-height: 18px;
+        padding: 0 7px;
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 6px;
+        background: #242321;
+        color: #d7d4cf;
+        font-size: 11px;
+        font-weight: 800;
+        line-height: 1;
+      }
+
+      .nai-bulk-title-badge-mark {
+        border-color: rgba(255, 144, 92, .72);
+        background: #e87046;
+        color: #1d100a;
+      }
+
+      .nai-bulk-title > span,
+      .nai-bulk-title-site {
+        color: #aaa7a1;
+        font-size: 12px;
+      }
+
+      .nai-bulk-title-site {
+        max-width: min(420px, 36vw);
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .nai-bulk-title-site strong {
+        color: #efeeeb;
+        font-size: 12px;
+      }
+
+      .nai-bulk-header-actions {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        flex: 0 0 auto;
+      }
+
+      .nai-bulk-hidden-file {
+        display: none !important;
+      }
+
+      .nai-step {
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .nai-step-kicker {
+        color: #e87046;
+        font-size: 11px;
+        font-weight: 850;
+      }
+
+      .nai-step-title {
+        color: #efeeeb;
+        font-size: 14px;
+        font-weight: 850;
+      }
+
+      .nai-step-desc {
+        color: #9a9690;
+        font-size: 12px;
+      }
+
+      .nai-bulk-close,
+      .nai-bulk-small-button,
+      .nai-bulk-action {
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 7px;
+        background: #2a2927;
+        color: #efeeeb;
+        cursor: pointer;
+        font: inherit;
+      }
+
+      .nai-bulk-close {
+        width: 34px;
+        height: 34px;
+        font-size: 18px;
+      }
+
+      .nai-bulk-body {
+        overflow: auto;
+        padding: 12px;
+      }
+
+      .nai-bulk-panel[data-nai-mode="choose"] .nai-bulk-body,
+      .nai-bulk-panel[data-nai-mode="local"] .nai-mode-chooser,
+      .nai-bulk-panel[data-nai-mode="remote"] .nai-mode-chooser,
+      .nai-bulk-panel[data-nai-mode="local"] .nai-remote-only,
+      .nai-bulk-panel[data-nai-mode="local"] .nai-remote-panel {
+        display: none;
+      }
+
+      .nai-bulk-panel[data-nai-mode="choose"] .nai-mode-chooser {
+        display: grid;
+      }
+
+      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="bulk"] .nai-remote-list-panel,
+      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="channels"] [data-nai-remote-panel]:not([data-nai-remote-panel="channels"]),
+      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="logs"] [data-nai-remote-panel]:not([data-nai-remote-panel="logs"]),
+      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="users"] [data-nai-remote-panel]:not([data-nai-remote-panel="users"]) {
+        display: none;
+      }
+
+      .nai-mode-chooser {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 14px;
+        padding: 18px;
+      }
+
+      .nai-mode-card {
+        min-height: 190px;
+        display: flex;
+        flex-direction: column;
+        align-items: flex-start;
+        justify-content: center;
+        gap: 12px;
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 9px;
+        background: #151412;
+        color: #efeeeb;
+        padding: 22px;
+        text-align: left;
+        cursor: pointer;
+      }
+
+      .nai-mode-card:hover {
+        border-color: rgba(232, 112, 70, .8);
+        background: #1e1b19;
+      }
+
+      .nai-mode-card-icon {
+        width: 38px;
+        height: 38px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 9px;
+        background: #e87046;
+        color: #1d100a;
+        font-size: 22px;
+        font-weight: 900;
+      }
+
+      .nai-mode-card-title {
+        color: #efeeeb;
+        font-size: 18px;
+        font-weight: 900;
+        letter-spacing: 0;
+      }
+
+      .nai-mode-card-desc {
+        color: #aaa7a1;
+        font-size: 13px;
+      }
+
+      .nai-remote-config-panel {
+        margin-bottom: 10px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 9px;
+        background: #151412;
+      }
+
+      .nai-remote-config-grid {
+        display: grid;
+        grid-template-columns: minmax(170px, .8fr) minmax(260px, 1.35fr) minmax(110px, .45fr) minmax(210px, 1fr) minmax(170px, .7fr) auto;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .nai-remote-config-actions {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+        justify-content: flex-end;
+        padding-bottom: 1px;
+      }
+
+      .nai-remote-status {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        background: #11100f;
+      }
+
+      .nai-remote-status-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .nai-remote-status-head > div {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .nai-remote-status-head strong {
+        color: #efeeeb;
+        font-size: 13px;
+      }
+
+      .nai-remote-status-head span:not(.nai-remote-status-dot) {
+        color: #aaa7a1;
+        font-size: 12px;
+      }
+
+      .nai-remote-status-dot {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: #8a8680;
+        box-shadow: 0 0 0 4px rgba(138, 134, 128, .16);
+      }
+
+      .nai-remote-status[data-state="testing"] .nai-remote-status-dot {
+        background: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, .16);
+      }
+
+      .nai-remote-status[data-state="ok"] .nai-remote-status-dot {
+        background: #22c55e;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, .16);
+      }
+
+      .nai-remote-status[data-state="error"] .nai-remote-status-dot {
+        background: #ef4444;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, .16);
+      }
+
+      .nai-remote-status-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .nai-remote-status-cell {
+        min-width: 0;
+        padding: 9px;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 7px;
+        background: #171514;
+      }
+
+      .nai-remote-status-cell span {
+        display: block;
+        color: #9a9690;
+        font-size: 11px;
+        font-weight: 750;
+      }
+
+      .nai-remote-status-cell strong {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #efeeeb;
+        font-size: 12px;
+      }
+
+      .nai-remote-checks {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .nai-remote-check,
+      .nai-remote-check-empty {
+        min-width: 0;
+        padding: 8px 9px;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 7px;
+        background: #161413;
+      }
+
+      .nai-remote-check {
+        border-left: 3px solid #ef4444;
+      }
+
+      .nai-remote-check[data-ok="true"] {
+        border-left-color: #22c55e;
+      }
+
+      .nai-remote-check span {
+        display: block;
+        color: #c8c3bd;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .nai-remote-check strong,
+      .nai-remote-check-empty {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #aaa7a1;
+        font-size: 11px;
+      }
+
+      .nai-remote-site-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+        overflow: auto;
+        padding-bottom: 1px;
+      }
+
+      .nai-remote-site-empty {
+        width: 100%;
+        padding: 12px;
+        border: 1px dashed rgba(255, 255, 255, .16);
+        border-radius: 8px;
+        color: #aaa7a1;
+        background: #151412;
+      }
+
+      .nai-remote-site-tab {
+        min-width: 220px;
+        max-width: 280px;
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) 22px;
+        gap: 9px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 8px;
+        background: #151412;
+        color: #efeeeb;
+        cursor: pointer;
+        text-align: left;
+        font: inherit;
+      }
+
+      .nai-remote-site-tab[data-active="true"] {
+        border-color: rgba(232, 112, 70, .76);
+        background: #211a16;
+      }
+
+      .nai-remote-site-index {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        background: #2a2927;
+        color: #efeeeb;
+        font-weight: 900;
+      }
+
+      .nai-remote-site-tab[data-active="true"] .nai-remote-site-index {
+        background: #e87046;
+        color: #1d100a;
+      }
+
+      .nai-remote-site-text {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .nai-remote-site-text strong,
+      .nai-remote-site-text small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .nai-remote-site-text strong {
+        color: #efeeeb;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .nai-remote-site-text small {
+        color: #9a9690;
+        font-size: 11px;
+      }
+
+      .nai-remote-site-remove {
+        width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        color: #aaa7a1;
+      }
+
+      .nai-remote-site-remove:hover {
+        background: rgba(239, 68, 68, .16);
+        color: #ff9a8c;
+      }
+
+      .nai-remote-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+      }
+
+      .nai-remote-tab {
+        min-height: 34px;
+        padding: 0 16px;
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 7px;
+        background: #191817;
+        color: #c8c3bd;
+        cursor: pointer;
+        font: inherit;
+        font-weight: 800;
+      }
+
+      .nai-remote-tab[data-active="true"] {
+        background: #2a2927;
+        color: #efeeeb;
+        border-color: rgba(255, 255, 255, .2);
+      }
+
+      .nai-remote-list-panel {
+        min-height: calc(100vh - 248px);
+        padding: 14px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 9px;
+        background: #151412;
+      }
+
+      .nai-remote-channel-status {
+        margin: 10px 0;
+        color: #aaa7a1;
+        font-size: 12px;
+      }
+
+      .nai-remote-channel-list {
+        overflow: auto;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        background: #11100f;
+      }
+
+      .nai-remote-channel-table {
+        min-width: 920px;
+        display: grid;
+        grid-template-columns: 90px minmax(240px, 1.4fr) minmax(160px, .85fr) minmax(130px, .7fr) 110px 120px;
+      }
+
+      .nai-remote-channel-head,
+      .nai-remote-channel-cell {
+        min-width: 0;
+        padding: 10px 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, .08);
+        color: #d8d3cd;
+      }
+
+      .nai-remote-channel-head {
+        position: sticky;
+        top: 0;
+        z-index: 1;
+        background: #242321;
+        color: #efeeeb;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .nai-remote-channel-name {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .nai-empty-state {
+        padding: 22px;
+        color: #aaa7a1;
+        text-align: center;
+      }
+
+      .nai-workbench {
+        height: calc(100vh - 146px);
+        min-height: 620px;
+        display: grid;
+        grid-template-columns: minmax(340px, .98fr) minmax(360px, 1fr) minmax(420px, 1.18fr);
+        gap: 12px;
+        align-items: stretch;
+      }
+
+      .nai-bulk-panel[data-nai-mode="remote"] .nai-workbench {
+        height: calc(100vh - 286px);
+        min-height: 520px;
+      }
+
+      .nai-pane {
+        min-width: 0;
+        height: 100%;
+        max-height: none;
+        box-sizing: border-box;
+        overflow: auto;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 9px;
+        background: #151412;
+      }
+
+      .nai-pane-left,
+      .nai-pane-center,
+      .nai-pane-right {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+      }
+
+      .nai-pane-half {
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+        overflow: hidden;
+      }
+
+      .nai-pane-left {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+        overflow: hidden;
+      }
+
+      .nai-left-input {
+        overflow: auto;
+      }
+
+      .nai-left-input .nai-bulk-field {
+        min-height: 0;
+      }
+
+      #nai-keys {
+        height: 118px;
+        min-height: 88px;
+        max-height: 220px;
+        resize: vertical;
+      }
+
+      .nai-left-workspace > .nai-key-tab-panel {
+        flex: 1 1 auto;
+        height: auto;
+        min-height: 0;
+        overflow: auto;
+      }
+
+      .nai-pane-center {
+        display: grid;
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+        gap: 12px;
+        overflow: hidden;
+      }
+
+      .nai-center-top {
+        overflow: auto;
+      }
+
+      .nai-center-monitor > .nai-pane-card {
+        flex: 1 1 auto;
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .nai-pane-right {
+        background: #181715;
+      }
+
+      .nai-right-sticky {
+        position: sticky;
+        top: -12px;
+        z-index: 5;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+        margin: -12px -12px 0;
+        padding: 12px;
+        border-bottom: 1px solid rgba(255, 255, 255, .1);
+        background: #181715;
+      }
+
+      .nai-right-sticky-header {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: start;
+      }
+
+      .nai-pane-title {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+        color: #efeeeb;
+        font-size: 13px;
+        font-weight: 800;
+      }
+
+      .nai-pane-title small {
+        color: #9a9690;
+        font-size: 11px;
+        font-weight: 650;
+      }
+
+      .nai-pane-card {
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 8px;
+        background: #191817;
+      }
+
+      .nai-job-status {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 10px;
+      }
+
+      .nai-job-status strong {
+        color: #efeeeb;
+        font-size: 13px;
+      }
+
+      .nai-job-status span {
+        color: #9a9690;
+        font-size: 12px;
+      }
+
+      .nai-job-status-text {
+        display: block;
+        margin-top: 2px;
+      }
+
+      .nai-job-empty {
+        margin-top: 10px;
+        padding: 10px;
+        border: 1px dashed rgba(255, 255, 255, .14);
+        border-radius: 8px;
+        background: #141312;
+        color: #aaa7a1;
+        font-size: 12px;
+        line-height: 1.5;
+      }
+
+      .nai-job-empty[hidden],
+      .nai-job-runtime[hidden] {
+        display: none;
+      }
+
+      .nai-bulk-actions.nai-job-actionbar {
+        margin-top: 10px;
+        padding: 10px 0 0;
+        background: transparent;
+        border-top: 0;
+      }
+
+      .nai-job-actionbar[hidden] {
+        display: none;
+      }
+
+      .nai-job-actionbar .nai-bulk-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+      }
+
+      .nai-action-icon {
+        display: inline-flex;
+        width: 16px;
+        justify-content: center;
+        font-weight: 900;
+        line-height: 1;
+      }
+
+      .nai-key-add-actions {
+        padding: 0;
+        border-top: 0;
+        background: transparent;
+      }
+
+      .nai-key-add-actions .nai-bulk-action {
+        width: 100%;
+      }
+
+      .nai-key-summary {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .nai-key-tabs {
+        display: flex;
+        gap: 6px;
+        padding: 3px;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 8px;
+        background: #11100f;
+      }
+
+      .nai-key-tab {
+        flex: 1;
+        min-height: 32px;
+        border: 0;
+        border-radius: 6px;

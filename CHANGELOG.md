@@ -4,6 +4,14 @@
 
 - No unreleased changes.
 
+## 0.7.0
+
+- Convert remote mode from a single connection into up to five independent NewAPI sites.
+- Add per-site child tabs: bulk add, channel list, log list, and user list.
+- Keep each remote site's key pool, job, work log, form config, and list cache isolated.
+- Split development source files into part files so maintained code files stay under 1000 lines.
+- Add project `.ai` standards based on the downloaded `ZERO` reference, including the first purification rule for file size.
+
 ## 0.6.1
 
 - Show a visible remote connection status panel for idle, testing, success, and failure states.

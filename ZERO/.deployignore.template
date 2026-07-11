@@ -1,0 +1,51 @@
+# ================================================================
+# 部署排除规则模板
+# 复制此文件为 .deployignore 并根据项目需求修改
+# ================================================================
+
+# Git 和版本控制
+.git
+
+# 环境配置（服务器有自己的配置）
+.env
+.user.ini
+
+# 系统文件
+.DS_Store
+
+# Node.js 依赖
+node_modules
+
+# PHP 测试框架（仅本地开发）
+vendor
+tests
+composer.json
+composer.lock
+phpunit.xml
+.phpunit.result.cache
+
+# Python 虚拟环境
+venv
+__pycache__
+*.pyc
+
+# IDE 和编辑器配置
+.claude
+.kiro
+.vscode
+.idea
+
+# ZERO 框架（如果不需要部署）
+# ZERO
+
+# 日志文件
+*.log
+logs/*.log
+
+# 缓存目录（服务器端生成）
+# cache/*
+# tmp/*
+
+# 媒体文件（如果服务器端生成）
+# media/cache/*
+# media/uploads/*

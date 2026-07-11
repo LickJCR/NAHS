@@ -2,15 +2,17 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.6.1';
+  const SCRIPT_VERSION = '0.7.0';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
   const REMOTE_CONFIG_STORAGE_KEY = 'nai:bulk-channel-importer:remote-config:v1';
+  const REMOTE_SITES_STORAGE_KEY = 'nai:bulk-channel-importer:remote-sites:v1';
   const BUTTON_POSITION_KEY = 'nai:bulk-channel-importer:button-position:v1';
   const API_ROOT = '/api/channel';
   const GROUPS_API = '/api/group/';
   const TEMPLATE_PAGE_SIZE = 100;
+  const MAX_REMOTE_SITES = 5;
   const NAME_SLOT_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const MAX_NAME_SEGMENTS = 12;
   const NAME_SEGMENT_TYPES = [
@@ -308,18 +310,10 @@
     operationMode: 'choose',
     remoteTab: 'bulk',
     remoteConfig: { ...DEFAULT_REMOTE_CONFIG },
-    remoteConnection: {
-      state: 'idle',
-      checkedAt: '',
-      message: '尚未测试远端连接。',
-      baseUrl: '',
-      site: {},
-      account: {},
-      checks: [],
-    },
-    remoteChannels: [],
-    remoteChannelsLoaded: false,
-    remoteChannelsBusy: false,
+    activeRemoteSiteId: '',
+    remoteSites: [],
+    remoteConnection: defaultRemoteConnection(),
+    remoteResources: defaultRemoteResources(),
     open: false,
     running: false,
     nameSeedKey: '',
@@ -507,7 +501,7 @@
   }
 
   function normalizeRemoteTab(value) {
-    return value === 'channels' ? 'channels' : 'bulk';
+    return ['bulk', 'channels', 'logs', 'users'].includes(value) ? value : 'bulk';
   }
 
   function normalizeRemoteBaseUrl(value) {
@@ -533,6 +527,154 @@
     };
   }
 
+  function defaultRemoteConnection() {
+    return {
+      state: 'idle',
+      checkedAt: '',
+      message: '尚未测试远端连接。',
+      baseUrl: '',
+      site: {},
+      account: {},
+      checks: [],
+    };
+  }
+
+  function defaultRemoteResource() {
+    return {
+      items: [],
+      loaded: false,
+      busy: false,
+      error: '',
+      updatedAt: '',
+      meta: {},
+    };
+  }
+
+  function defaultRemoteResources() {
+    return {
+      channels: defaultRemoteResource(),
+      logs: defaultRemoteResource(),
+      users: defaultRemoteResource(),
+    };
+  }
+
+  function normalizeRemoteConnection(value = {}) {
+    const data = value && typeof value === 'object' ? value : {};
+    return {
+      ...defaultRemoteConnection(),
+      state: ['idle', 'testing', 'ok', 'error'].includes(data.state) ? data.state : 'idle',
+      checkedAt: String(data.checkedAt || ''),
+      message: String(data.message || '尚未测试远端连接。'),
+      baseUrl: normalizeRemoteBaseUrl(data.baseUrl),
+      site: data.site && typeof data.site === 'object' ? data.site : {},
+      account: data.account && typeof data.account === 'object' ? data.account : {},
+      checks: Array.isArray(data.checks) ? data.checks : [],
+    };
+  }
+
+  function normalizeRemoteResource(value = {}) {
+    const data = value && typeof value === 'object' ? value : {};
+    return {
+      items: Array.isArray(data.items) ? data.items.filter(Boolean) : [],
+      loaded: data.loaded === true,
+      busy: false,
+      error: String(data.error || ''),
+      updatedAt: String(data.updatedAt || ''),
+      meta: data.meta && typeof data.meta === 'object' ? data.meta : {},
+    };
+  }
+
+  function normalizeRemoteResources(value = {}) {
+    const data = value && typeof value === 'object' ? value : {};
+    return {
+      channels: normalizeRemoteResource(data.channels),
+      logs: normalizeRemoteResource(data.logs),
+      users: normalizeRemoteResource(data.users),
+    };
+  }
+
+  function defaultRemoteWorkspace() {
+    return {
+      keyPool: [],
+      activeJob: null,
+      workLogs: [],
+      formConfig: null,
+      resources: defaultRemoteResources(),
+    };
+  }
+
+  function remoteSiteLabel(config, fallback = '') {
+    const normalized = normalizeRemoteConfig(config);
+    if (fallback) return fallback;
+    if (!normalized.baseUrl) return '未命名台子';
+    try {
+      return new URL(normalized.baseUrl).hostname;
+    } catch {
+      return normalized.baseUrl;
+    }
+  }
+
+  function normalizeRemoteSite(value = {}, index = 0) {
+    const config = normalizeRemoteConfig(value.config || value);
+    const id = String(value.id || `remote-site-${Date.now()}-${index}`).trim();
+    const workspace = value.workspace && typeof value.workspace === 'object' ? value.workspace : defaultRemoteWorkspace();
+    return {
+      id,
+      name: String(value.name || remoteSiteLabel(config)).trim() || `台子 ${index + 1}`,
+      config,
+      connection: normalizeRemoteConnection(value.connection || { baseUrl: config.baseUrl }),
+      workspace: {
+        ...defaultRemoteWorkspace(),
+        ...workspace,
+        resources: normalizeRemoteResources(workspace.resources),
+      },
+      createdAt: value.createdAt || nowIso(),
+      updatedAt: value.updatedAt || nowIso(),
+    };
+  }
+
+  function legacyRemoteSiteFromConfig() {
+    const config = loadRemoteConfig();
+    if (!config.baseUrl && !config.userId && !config.userSecret) return null;
+    return normalizeRemoteSite({
+      id: `remote-site-${Date.now()}`,
+      name: remoteSiteLabel(config),
+      config,
+      connection: { ...defaultRemoteConnection(), baseUrl: config.baseUrl },
+      workspace: defaultRemoteWorkspace(),
+    });
+  }
+
+  function loadRemoteSites() {
+    try {
+      const raw = localStorage.getItem(REMOTE_SITES_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const list = Array.isArray(parsed?.sites) ? parsed.sites : Array.isArray(parsed) ? parsed : [];
+        state.activeRemoteSiteId = String(parsed?.activeId || '');
+        const sites = list.map(normalizeRemoteSite).filter((site) => site.config.baseUrl).slice(0, MAX_REMOTE_SITES);
+        if (sites.length) return sites;
+      }
+    } catch {
+      /* fall through to legacy remote config */
+    }
+    const legacy = legacyRemoteSiteFromConfig();
+    if (legacy) {
+      state.activeRemoteSiteId = legacy.id;
+      return [legacy];
+    }
+    return [];
+  }
+
+  function saveRemoteSites() {
+    const payload = {
+      version: SCRIPT_VERSION,
+      activeId: state.activeRemoteSiteId,
+      sites: state.remoteSites.slice(0, MAX_REMOTE_SITES),
+    };
+    localStorage.setItem(REMOTE_SITES_STORAGE_KEY, JSON.stringify(payload));
+  }
+
   function loadRemoteConfig() {
     try {
       const raw = localStorage.getItem(REMOTE_CONFIG_STORAGE_KEY);
@@ -547,6 +689,50 @@
     state.remoteConfig = normalized;
     localStorage.setItem(REMOTE_CONFIG_STORAGE_KEY, JSON.stringify(normalized));
     return normalized;
+  }
+
+  function activeRemoteSite() {
+    return state.remoteSites.find((site) => site.id === state.activeRemoteSiteId) || null;
+  }
+
+  function remoteWorkspacePayload() {
+    let formConfig = null;
+    try {
+      const panel = document.getElementById(SCRIPT_ID);
+      formConfig = panel ? collectConfig(false) : null;
+    } catch {
+      formConfig = null;
+    }
+    return {
+      keyPool: state.keyPool,
+      activeJob: jobForStorage(state.activeJob),
+      workLogs: state.workLogs,
+      formConfig,
+      resources: normalizeRemoteResources(state.remoteResources),
+    };
+  }
+
+  function saveActiveRemoteSiteWorkspace() {
+    const site = activeRemoteSite();
+    if (!site) return;
+    site.workspace = remoteWorkspacePayload();
+    site.connection = normalizeRemoteConnection(state.remoteConnection);
+    site.config = normalizeRemoteConfig(state.remoteConfig);
+    site.name = String(site.name || remoteSiteLabel(site.config)).trim();
+    site.updatedAt = nowIso();
+  }
+
+  function applyRemoteSiteToState(site, options = {}) {
+    if (!site) return;
+    state.activeRemoteSiteId = site.id;
+    state.remoteConfig = normalizeRemoteConfig(site.config);
+    state.remoteConnection = normalizeRemoteConnection(site.connection || { baseUrl: site.config.baseUrl });
+    applyWorkspacePayload(site.workspace || defaultRemoteWorkspace(), {
+      keepMode: true,
+      keepRemoteTab: true,
+      keepMonitor: options.keepMonitor === true,
+    });
+    state.remoteResources = normalizeRemoteResources(site.workspace?.resources);
   }
 
   function jobForStorage(job) {
@@ -566,13 +752,15 @@
       keyPool,
       activeJob,
       workLogs,
+      formConfig: data.formConfig && typeof data.formConfig === 'object' ? data.formConfig : null,
+      resources: normalizeRemoteResources(data.resources),
     };
   }
 
   function applyWorkspacePayload(payload, options = {}) {
     const normalized = normalizeWorkspacePayload(payload);
-    state.operationMode = normalized.operationMode;
-    state.remoteTab = normalized.remoteTab;
+    if (!options.keepMode) state.operationMode = normalized.operationMode;
+    if (!options.keepRemoteTab) state.remoteTab = normalized.remoteTab;
     state.keyPool = normalized.keyPool.map((entry, index) => ({
       key: String(entry.key || ''),
       keyPreview: entry.keyPreview || keyPreview(entry.key || ''),
@@ -611,6 +799,7 @@
       kind: entry.kind || 'info',
       message: String(entry.message || ''),
     })).filter((entry) => entry.message);
+    state.remoteResources = normalized.resources;
     state.strategyDirty = false;
     if (!options.keepMonitor && state.monitorTimer) {
       clearInterval(state.monitorTimer);
@@ -629,11 +818,17 @@
       keyPool: state.keyPool,
       activeJob: jobForStorage(state.activeJob),
       workLogs: state.workLogs,
+      resources: state.operationMode === 'remote' ? normalizeRemoteResources(state.remoteResources) : undefined,
     };
   }
 
   function persistWorkspaceState() {
     try {
+      if (state.operationMode === 'remote' && state.activeRemoteSiteId) {
+        saveActiveRemoteSiteWorkspace();
+        saveRemoteSites();
+        return;
+      }
       localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(workspacePayload()));
     } catch (err) {
       console.warn('[NewAPI Bulk Channel Importer] workspace persist failed:', err);

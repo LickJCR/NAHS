@@ -1,9 +1,9 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.6.1
+// @version      0.7.0
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
-// @author       al90slj23
+// @author       LickJCR
 // @license      MIT
 // @homepageURL  https://github.com/LickJCR/NAHS
 // @supportURL   https://github.com/LickJCR/NAHS/issues
@@ -23,15 +23,17 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.6.1';
+  const SCRIPT_VERSION = '0.7.0';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
   const REMOTE_CONFIG_STORAGE_KEY = 'nai:bulk-channel-importer:remote-config:v1';
+  const REMOTE_SITES_STORAGE_KEY = 'nai:bulk-channel-importer:remote-sites:v1';
   const BUTTON_POSITION_KEY = 'nai:bulk-channel-importer:button-position:v1';
   const API_ROOT = '/api/channel';
   const GROUPS_API = '/api/group/';
   const TEMPLATE_PAGE_SIZE = 100;
+  const MAX_REMOTE_SITES = 5;
   const NAME_SLOT_LETTERS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
   const MAX_NAME_SEGMENTS = 12;
   const NAME_SEGMENT_TYPES = [
@@ -329,18 +331,10 @@
     operationMode: 'choose',
     remoteTab: 'bulk',
     remoteConfig: { ...DEFAULT_REMOTE_CONFIG },
-    remoteConnection: {
-      state: 'idle',
-      checkedAt: '',
-      message: '尚未测试远端连接。',
-      baseUrl: '',
-      site: {},
-      account: {},
-      checks: [],
-    },
-    remoteChannels: [],
-    remoteChannelsLoaded: false,
-    remoteChannelsBusy: false,
+    activeRemoteSiteId: '',
+    remoteSites: [],
+    remoteConnection: defaultRemoteConnection(),
+    remoteResources: defaultRemoteResources(),
     open: false,
     running: false,
     nameSeedKey: '',
@@ -528,7 +522,7 @@
   }
 
   function normalizeRemoteTab(value) {
-    return value === 'channels' ? 'channels' : 'bulk';
+    return ['bulk', 'channels', 'logs', 'users'].includes(value) ? value : 'bulk';
   }
 
   function normalizeRemoteBaseUrl(value) {
@@ -554,6 +548,154 @@
     };
   }
 
+  function defaultRemoteConnection() {
+    return {
+      state: 'idle',
+      checkedAt: '',
+      message: '尚未测试远端连接。',
+      baseUrl: '',
+      site: {},
+      account: {},
+      checks: [],
+    };
+  }
+
+  function defaultRemoteResource() {
+    return {
+      items: [],
+      loaded: false,
+      busy: false,
+      error: '',
+      updatedAt: '',
+      meta: {},
+    };
+  }
+
+  function defaultRemoteResources() {
+    return {
+      channels: defaultRemoteResource(),
+      logs: defaultRemoteResource(),
+      users: defaultRemoteResource(),
+    };
+  }
+
+  function normalizeRemoteConnection(value = {}) {
+    const data = value && typeof value === 'object' ? value : {};
+    return {
+      ...defaultRemoteConnection(),
+      state: ['idle', 'testing', 'ok', 'error'].includes(data.state) ? data.state : 'idle',
+      checkedAt: String(data.checkedAt || ''),
+      message: String(data.message || '尚未测试远端连接。'),
+      baseUrl: normalizeRemoteBaseUrl(data.baseUrl),
+      site: data.site && typeof data.site === 'object' ? data.site : {},
+      account: data.account && typeof data.account === 'object' ? data.account : {},
+      checks: Array.isArray(data.checks) ? data.checks : [],
+    };
+  }
+
+  function normalizeRemoteResource(value = {}) {
+    const data = value && typeof value === 'object' ? value : {};
+    return {
+      items: Array.isArray(data.items) ? data.items.filter(Boolean) : [],
+      loaded: data.loaded === true,
+      busy: false,
+      error: String(data.error || ''),
+      updatedAt: String(data.updatedAt || ''),
+      meta: data.meta && typeof data.meta === 'object' ? data.meta : {},
+    };
+  }
+
+  function normalizeRemoteResources(value = {}) {
+    const data = value && typeof value === 'object' ? value : {};
+    return {
+      channels: normalizeRemoteResource(data.channels),
+      logs: normalizeRemoteResource(data.logs),
+      users: normalizeRemoteResource(data.users),
+    };
+  }
+
+  function defaultRemoteWorkspace() {
+    return {
+      keyPool: [],
+      activeJob: null,
+      workLogs: [],
+      formConfig: null,
+      resources: defaultRemoteResources(),
+    };
+  }
+
+  function remoteSiteLabel(config, fallback = '') {
+    const normalized = normalizeRemoteConfig(config);
+    if (fallback) return fallback;
+    if (!normalized.baseUrl) return '未命名台子';
+    try {
+      return new URL(normalized.baseUrl).hostname;
+    } catch {
+      return normalized.baseUrl;
+    }
+  }
+
+  function normalizeRemoteSite(value = {}, index = 0) {
+    const config = normalizeRemoteConfig(value.config || value);
+    const id = String(value.id || `remote-site-${Date.now()}-${index}`).trim();
+    const workspace = value.workspace && typeof value.workspace === 'object' ? value.workspace : defaultRemoteWorkspace();
+    return {
+      id,
+      name: String(value.name || remoteSiteLabel(config)).trim() || `台子 ${index + 1}`,
+      config,
+      connection: normalizeRemoteConnection(value.connection || { baseUrl: config.baseUrl }),
+      workspace: {
+        ...defaultRemoteWorkspace(),
+        ...workspace,
+        resources: normalizeRemoteResources(workspace.resources),
+      },
+      createdAt: value.createdAt || nowIso(),
+      updatedAt: value.updatedAt || nowIso(),
+    };
+  }
+
+  function legacyRemoteSiteFromConfig() {
+    const config = loadRemoteConfig();
+    if (!config.baseUrl && !config.userId && !config.userSecret) return null;
+    return normalizeRemoteSite({
+      id: `remote-site-${Date.now()}`,
+      name: remoteSiteLabel(config),
+      config,
+      connection: { ...defaultRemoteConnection(), baseUrl: config.baseUrl },
+      workspace: defaultRemoteWorkspace(),
+    });
+  }
+
+  function loadRemoteSites() {
+    try {
+      const raw = localStorage.getItem(REMOTE_SITES_STORAGE_KEY);
+      if (raw) {
+        const parsed = JSON.parse(raw);
+        const list = Array.isArray(parsed?.sites) ? parsed.sites : Array.isArray(parsed) ? parsed : [];
+        state.activeRemoteSiteId = String(parsed?.activeId || '');
+        const sites = list.map(normalizeRemoteSite).filter((site) => site.config.baseUrl).slice(0, MAX_REMOTE_SITES);
+        if (sites.length) return sites;
+      }
+    } catch {
+      /* fall through to legacy remote config */
+    }
+    const legacy = legacyRemoteSiteFromConfig();
+    if (legacy) {
+      state.activeRemoteSiteId = legacy.id;
+      return [legacy];
+    }
+    return [];
+  }
+
+  function saveRemoteSites() {
+    const payload = {
+      version: SCRIPT_VERSION,
+      activeId: state.activeRemoteSiteId,
+      sites: state.remoteSites.slice(0, MAX_REMOTE_SITES),
+    };
+    localStorage.setItem(REMOTE_SITES_STORAGE_KEY, JSON.stringify(payload));
+  }
+
   function loadRemoteConfig() {
     try {
       const raw = localStorage.getItem(REMOTE_CONFIG_STORAGE_KEY);
@@ -568,6 +710,50 @@
     state.remoteConfig = normalized;
     localStorage.setItem(REMOTE_CONFIG_STORAGE_KEY, JSON.stringify(normalized));
     return normalized;
+  }
+
+  function activeRemoteSite() {
+    return state.remoteSites.find((site) => site.id === state.activeRemoteSiteId) || null;
+  }
+
+  function remoteWorkspacePayload() {
+    let formConfig = null;
+    try {
+      const panel = document.getElementById(SCRIPT_ID);
+      formConfig = panel ? collectConfig(false) : null;
+    } catch {
+      formConfig = null;
+    }
+    return {
+      keyPool: state.keyPool,
+      activeJob: jobForStorage(state.activeJob),
+      workLogs: state.workLogs,
+      formConfig,
+      resources: normalizeRemoteResources(state.remoteResources),
+    };
+  }
+
+  function saveActiveRemoteSiteWorkspace() {
+    const site = activeRemoteSite();
+    if (!site) return;
+    site.workspace = remoteWorkspacePayload();
+    site.connection = normalizeRemoteConnection(state.remoteConnection);
+    site.config = normalizeRemoteConfig(state.remoteConfig);
+    site.name = String(site.name || remoteSiteLabel(site.config)).trim();
+    site.updatedAt = nowIso();
+  }
+
+  function applyRemoteSiteToState(site, options = {}) {
+    if (!site) return;
+    state.activeRemoteSiteId = site.id;
+    state.remoteConfig = normalizeRemoteConfig(site.config);
+    state.remoteConnection = normalizeRemoteConnection(site.connection || { baseUrl: site.config.baseUrl });
+    applyWorkspacePayload(site.workspace || defaultRemoteWorkspace(), {
+      keepMode: true,
+      keepRemoteTab: true,
+      keepMonitor: options.keepMonitor === true,
+    });
+    state.remoteResources = normalizeRemoteResources(site.workspace?.resources);
   }
 
   function jobForStorage(job) {
@@ -587,13 +773,15 @@
       keyPool,
       activeJob,
       workLogs,
+      formConfig: data.formConfig && typeof data.formConfig === 'object' ? data.formConfig : null,
+      resources: normalizeRemoteResources(data.resources),
     };
   }
 
   function applyWorkspacePayload(payload, options = {}) {
     const normalized = normalizeWorkspacePayload(payload);
-    state.operationMode = normalized.operationMode;
-    state.remoteTab = normalized.remoteTab;
+    if (!options.keepMode) state.operationMode = normalized.operationMode;
+    if (!options.keepRemoteTab) state.remoteTab = normalized.remoteTab;
     state.keyPool = normalized.keyPool.map((entry, index) => ({
       key: String(entry.key || ''),
       keyPreview: entry.keyPreview || keyPreview(entry.key || ''),
@@ -632,6 +820,7 @@
       kind: entry.kind || 'info',
       message: String(entry.message || ''),
     })).filter((entry) => entry.message);
+    state.remoteResources = normalized.resources;
     state.strategyDirty = false;
     if (!options.keepMonitor && state.monitorTimer) {
       clearInterval(state.monitorTimer);
@@ -650,11 +839,17 @@
       keyPool: state.keyPool,
       activeJob: jobForStorage(state.activeJob),
       workLogs: state.workLogs,
+      resources: state.operationMode === 'remote' ? normalizeRemoteResources(state.remoteResources) : undefined,
     };
   }
 
   function persistWorkspaceState() {
     try {
+      if (state.operationMode === 'remote' && state.activeRemoteSiteId) {
+        saveActiveRemoteSiteWorkspace();
+        saveRemoteSites();
+        return;
+      }
       localStorage.setItem(WORKSPACE_STORAGE_KEY, JSON.stringify(workspacePayload()));
     } catch (err) {
       console.warn('[NewAPI Bulk Channel Importer] workspace persist failed:', err);
@@ -1003,7 +1198,7 @@
       .nai-bulk-panel[data-nai-mode="local"] .nai-mode-chooser,
       .nai-bulk-panel[data-nai-mode="remote"] .nai-mode-chooser,
       .nai-bulk-panel[data-nai-mode="local"] .nai-remote-only,
-      .nai-bulk-panel[data-nai-mode="local"] [data-nai-remote-panel="channels"] {
+      .nai-bulk-panel[data-nai-mode="local"] .nai-remote-panel {
         display: none;
       }
 
@@ -1011,8 +1206,10 @@
         display: grid;
       }
 
-      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="bulk"] [data-nai-remote-panel="channels"],
-      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="channels"] [data-nai-remote-panel="bulk"] {
+      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="bulk"] .nai-remote-list-panel,
+      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="channels"] [data-nai-remote-panel]:not([data-nai-remote-panel="channels"]),
+      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="logs"] [data-nai-remote-panel]:not([data-nai-remote-panel="logs"]),
+      .nai-bulk-panel[data-nai-mode="remote"][data-nai-remote-tab="users"] [data-nai-remote-panel]:not([data-nai-remote-panel="users"]) {
         display: none;
       }
 
@@ -1078,7 +1275,7 @@
 
       .nai-remote-config-grid {
         display: grid;
-        grid-template-columns: minmax(260px, 1.35fr) minmax(110px, .45fr) minmax(210px, 1fr) minmax(170px, .7fr) auto;
+        grid-template-columns: minmax(170px, .8fr) minmax(260px, 1.35fr) minmax(110px, .45fr) minmax(210px, 1fr) minmax(170px, .7fr) auto;
         gap: 10px;
         align-items: end;
       }
@@ -1220,6 +1417,102 @@
         font-size: 11px;
       }
 
+      .nai-remote-site-tabs {
+        display: flex;
+        gap: 8px;
+        margin-bottom: 10px;
+        overflow: auto;
+        padding-bottom: 1px;
+      }
+
+      .nai-remote-site-empty {
+        width: 100%;
+        padding: 12px;
+        border: 1px dashed rgba(255, 255, 255, .16);
+        border-radius: 8px;
+        color: #aaa7a1;
+        background: #151412;
+      }
+
+      .nai-remote-site-tab {
+        min-width: 220px;
+        max-width: 280px;
+        display: grid;
+        grid-template-columns: 28px minmax(0, 1fr) 22px;
+        gap: 9px;
+        align-items: center;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 8px;
+        background: #151412;
+        color: #efeeeb;
+        cursor: pointer;
+        text-align: left;
+        font: inherit;
+      }
+
+      .nai-remote-site-tab[data-active="true"] {
+        border-color: rgba(232, 112, 70, .76);
+        background: #211a16;
+      }
+
+      .nai-remote-site-index {
+        width: 28px;
+        height: 28px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 7px;
+        background: #2a2927;
+        color: #efeeeb;
+        font-weight: 900;
+      }
+
+      .nai-remote-site-tab[data-active="true"] .nai-remote-site-index {
+        background: #e87046;
+        color: #1d100a;
+      }
+
+      .nai-remote-site-text {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .nai-remote-site-text strong,
+      .nai-remote-site-text small {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .nai-remote-site-text strong {
+        color: #efeeeb;
+        font-size: 12px;
+        font-weight: 850;
+      }
+
+      .nai-remote-site-text small {
+        color: #9a9690;
+        font-size: 11px;
+      }
+
+      .nai-remote-site-remove {
+        width: 22px;
+        height: 22px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        border-radius: 6px;
+        color: #aaa7a1;
+      }
+
+      .nai-remote-site-remove:hover {
+        background: rgba(239, 68, 68, .16);
+        color: #ff9a8c;
+      }
+
       .nai-remote-tabs {
         display: flex;
         gap: 8px;
@@ -1244,7 +1537,7 @@
         border-color: rgba(255, 255, 255, .2);
       }
 
-      .nai-remote-channel-panel {
+      .nai-remote-list-panel {
         min-height: calc(100vh - 248px);
         padding: 14px;
         border: 1px solid rgba(255, 255, 255, .1);
@@ -1532,6 +1825,7 @@
         min-height: 32px;
         border: 0;
         border-radius: 6px;
+
         background: transparent;
         color: #aaa7a1;
         cursor: pointer;
@@ -2789,6 +3083,26 @@
     }).join('');
   }
 
+  function renderRemoteSiteTabs() {
+    if (!state.remoteSites.length) {
+      return '<div class="nai-remote-site-empty">暂无台子。填写上方连接信息后点击“保存并新增台子”。</div>';
+    }
+    return state.remoteSites.map((site, index) => {
+      const active = site.id === state.activeRemoteSiteId;
+      const subtitle = site.config?.baseUrl || '';
+      return `
+        <button type="button" class="nai-remote-site-tab" data-nai-remote-site="${escapeHtml(site.id)}" data-active="${active ? 'true' : 'false'}">
+          <span class="nai-remote-site-index">${index + 1}</span>
+          <span class="nai-remote-site-text">
+            <strong>${escapeHtml(site.name || `台子 ${index + 1}`)}</strong>
+            <small>${escapeHtml(subtitle)}</small>
+          </span>
+          <span class="nai-remote-site-remove" data-nai-remove-remote-site="${escapeHtml(site.id)}" title="移除台子">x</span>
+        </button>
+      `;
+    }).join('');
+  }
+
   function panelHtml(config) {
     const site = currentSiteInfo();
     const defaultBaseUrl = defaultBaseUrlForType(config.typePreset);
@@ -2829,10 +3143,14 @@
       <div class="nai-bulk-body">
         <section class="nai-remote-only nai-remote-config-panel">
           <div class="nai-pane-title">
-            <span>远端连接</span>
-            <small>远端密钥保存在当前站点浏览器 localStorage。</small>
+            <span>新增 NewAPI 台子</span>
+            <small>最多保存 ${MAX_REMOTE_SITES} 个台子；每个台子的 key 池、作业和列表互相独立。</small>
           </div>
           <div class="nai-remote-config-grid">
+            <div class="nai-bulk-field">
+              <label for="nai-remoteSiteName">台子名称</label>
+              <input id="nai-remoteSiteName" data-nai-remote-site-name placeholder="留空自动使用域名">
+            </div>
             <div class="nai-bulk-field">
               <label for="nai-remoteBaseUrl">NewAPI 地址</label>
               <input id="nai-remoteBaseUrl" data-nai-remote-field="baseUrl" placeholder="https://newapi.example.com" value="${escapeHtml(remoteConfig.baseUrl)}">
@@ -2850,15 +3168,20 @@
               <select id="nai-remoteAuthMode" data-nai-remote-field="authMode">${renderRemoteAuthModeOptions(remoteConfig.authMode)}</select>
             </div>
             <div class="nai-remote-config-actions">
-              <button type="button" class="nai-bulk-small-button" data-nai-save-remote-config>保存连接</button>
+              <button type="button" class="nai-bulk-small-button" data-nai-add-remote-site>保存并新增台子</button>
               <button type="button" class="nai-bulk-small-button" data-nai-test-remote>测试连接</button>
             </div>
           </div>
           <div id="nai-remoteConnectionStatus" class="nai-remote-status" data-state="idle"></div>
         </section>
+        <div class="nai-remote-only nai-remote-site-tabs" data-nai-remote-site-tabs>
+          ${renderRemoteSiteTabs()}
+        </div>
         <div class="nai-remote-only nai-remote-tabs" data-nai-remote-tabs>
           <button type="button" class="nai-remote-tab" data-nai-remote-tab="bulk" data-active="true">批量添加</button>
-          <button type="button" class="nai-remote-tab" data-nai-remote-tab="channels" data-active="false">远端渠道列表</button>
+          <button type="button" class="nai-remote-tab" data-nai-remote-tab="channels" data-active="false">渠道列表</button>
+          <button type="button" class="nai-remote-tab" data-nai-remote-tab="logs" data-active="false">日志列表</button>
+          <button type="button" class="nai-remote-tab" data-nai-remote-tab="users" data-active="false">用户列表</button>
         </div>
         <div class="nai-remote-panel" data-nai-remote-panel="bulk">
         <div class="nai-workbench">
@@ -3193,13 +3516,30 @@
           </aside>
         </div>
         </div>
-        <div class="nai-remote-panel nai-remote-channel-panel" data-nai-remote-panel="channels">
+        <div class="nai-remote-panel nai-remote-list-panel" data-nai-remote-panel="channels">
           <div class="nai-pane-title">
-            <span>远端渠道列表</span>
+            <span>渠道列表</span>
             <button type="button" class="nai-bulk-small-button" data-nai-refresh-remote-channels>刷新渠道列表</button>
           </div>
           <div id="nai-remoteChannelStatus" class="nai-remote-channel-status">尚未读取远端渠道。</div>
           <div id="nai-remoteChannels" class="nai-remote-channel-list"></div>
+        </div>
+        <div class="nai-remote-panel nai-remote-list-panel" data-nai-remote-panel="logs">
+          <div class="nai-pane-title">
+            <span>日志列表</span>
+            <button type="button" class="nai-bulk-small-button" data-nai-refresh-remote-logs>刷新日志列表</button>
+          </div>
+          <div id="nai-remoteLogStatus" class="nai-remote-channel-status">尚未读取远端日志。</div>
+          <div id="nai-remoteLogs" class="nai-remote-channel-list"></div>
+        </div>
+        <div class="nai-remote-panel nai-remote-list-panel" data-nai-remote-panel="users">
+          <div class="nai-pane-title">
+            <span>用户列表</span>
+            <button type="button" class="nai-bulk-small-button" data-nai-refresh-remote-users>刷新用户列表</button>
+          </div>
+          <div id="nai-remoteUserStatus" class="nai-remote-channel-status">尚未读取远端用户。</div>
+          <div id="nai-remoteUsers" class="nai-remote-channel-list"></div>
+
         </div>
       </div>
     `;
@@ -3226,8 +3566,17 @@
     if (document.getElementById(SCRIPT_ID)) return;
     injectStyles();
     captureHostTypeIcons();
-    state.remoteConfig = loadRemoteConfig();
+    state.remoteSites = loadRemoteSites();
+    if (!state.activeRemoteSiteId && state.remoteSites.length) state.activeRemoteSiteId = state.remoteSites[0].id;
+    const initialRemoteSite = activeRemoteSite();
+    state.remoteConfig = initialRemoteSite ? normalizeRemoteConfig(initialRemoteSite.config) : loadRemoteConfig();
+    if (initialRemoteSite && state.operationMode === 'remote') {
+      applyRemoteSiteToState(initialRemoteSite);
+    }
     restoreWorkspaceState();
+    if (state.operationMode === 'remote' && activeRemoteSite()) {
+      applyRemoteSiteToState(activeRemoteSite());
+    }
 
     const config = loadConfig();
     const button = document.createElement('button');
@@ -3288,9 +3637,11 @@
     qs('[data-nai-load-template]', panel).addEventListener('click', loadSelectedTemplate);
     qs('[data-nai-refresh-templates]', panel).addEventListener('click', loadTemplates);
     qs('[data-nai-change-mode]', panel).addEventListener('click', () => setOperationMode('choose'));
-    qs('[data-nai-save-remote-config]', panel).addEventListener('click', saveRemoteConfigFromForm);
+    qs('[data-nai-add-remote-site]', panel).addEventListener('click', addRemoteSiteFromForm);
     qs('[data-nai-test-remote]', panel).addEventListener('click', testRemoteConnection);
     qs('[data-nai-refresh-remote-channels]', panel).addEventListener('click', loadRemoteChannels);
+    qs('[data-nai-refresh-remote-logs]', panel).addEventListener('click', loadRemoteLogs);
+    qs('[data-nai-refresh-remote-users]', panel).addEventListener('click', loadRemoteUsers);
     qs('[data-nai-refresh-site]', panel).addEventListener('click', () => {
       updateSiteInfo();
       appendLog('已刷新站点信息。');
@@ -3336,6 +3687,16 @@
       const remoteTab = event.target.closest('[data-nai-remote-tab]');
       if (remoteTab) {
         setRemoteTab(remoteTab.getAttribute('data-nai-remote-tab') || 'bulk');
+        return;
+      }
+      const removeRemoteSite = event.target.closest('[data-nai-remove-remote-site]');
+      if (removeRemoteSite) {
+        removeRemoteSiteById(removeRemoteSite.getAttribute('data-nai-remove-remote-site') || '');
+        return;
+      }
+      const remoteSite = event.target.closest('[data-nai-remote-site]');
+      if (remoteSite) {
+        selectRemoteSite(remoteSite.getAttribute('data-nai-remote-site') || '');
         return;
       }
       const jobTab = event.target.closest('[data-nai-job-tab]');
@@ -3447,6 +3808,11 @@
     return normalizeRemoteConfig(config);
   }
 
+  function remoteSiteNameFromField(panel = document.getElementById(SCRIPT_ID), config = state.remoteConfig) {
+    const value = String(qs('[data-nai-remote-site-name]', panel)?.value || '').trim();
+    return value || remoteSiteLabel(config);
+  }
+
   function syncRemoteConfigFields() {
     const panel = document.getElementById(SCRIPT_ID);
     if (!panel) return;
@@ -3456,6 +3822,9 @@
       if (!key || config[key] === undefined) return;
       el.value = config[key];
     });
+    const siteName = qs('[data-nai-remote-site-name]', panel);
+    const activeSite = activeRemoteSite();
+    if (siteName) siteName.value = activeSite?.name || '';
   }
 
   function updateRemoteConfigPreview() {
@@ -3490,6 +3859,10 @@
     if (nextMode === 'remote') {
       saveRemoteConfig(state.remoteConfig);
       appendLog('已切换到远端 NewAPI 模式。');
+      if (!activeRemoteSite()) {
+        appendLog('远端模式暂无台子，请先保存并新增台子。');
+        return;
+      }
       try {
         validateRemoteConfig(state.remoteConfig);
       } catch {
@@ -3506,9 +3879,123 @@
     state.remoteTab = normalizeRemoteTab(tab);
     persistWorkspaceState();
     updateModeUi();
-    if (state.operationMode === 'remote' && state.remoteTab === 'channels' && !state.remoteChannelsLoaded) {
+    if (state.operationMode === 'remote' && state.remoteTab === 'channels' && !state.remoteResources.channels.loaded) {
       loadRemoteChannels();
     }
+    if (state.operationMode === 'remote' && state.remoteTab === 'logs' && !state.remoteResources.logs.loaded) {
+      loadRemoteLogs();
+    }
+    if (state.operationMode === 'remote' && state.remoteTab === 'users' && !state.remoteResources.users.loaded) {
+      loadRemoteUsers();
+    }
+  }
+
+  function refreshWorkspaceViews() {
+    renderWorkLog();
+    updateJobStats();
+    updateJobControls();
+    refreshPreview();
+    updateSiteInfo();
+    updateModeUi();
+  }
+
+  function selectRemoteSite(id) {
+    const site = state.remoteSites.find((item) => item.id === id);
+    if (!site) return;
+    if (state.activeRemoteSiteId === id) {
+      state.remoteConfig = normalizeRemoteConfig(site.config);
+      updateModeUi();
+      return;
+    }
+    saveActiveRemoteSiteWorkspace();
+    if (state.monitorTimer) {
+      clearInterval(state.monitorTimer);
+      state.monitorTimer = null;
+    }
+    applyRemoteSiteToState(site);
+    if (site.workspace?.formConfig) applyConfigToForm(site.workspace.formConfig);
+    saveRemoteSites();
+    refreshWorkspaceViews();
+    appendLog(`已切换到台子：${site.name}`);
+    loadGroups();
+    loadTemplates();
+    if (state.activeJob && !state.activeJob.stopped && !state.activeJob.paused) {
+      startMonitorLoop();
+    }
+  }
+
+  function addRemoteSiteFromForm() {
+    if (state.remoteSites.length >= MAX_REMOTE_SITES) {
+      const config = remoteConfigFromFields();
+      const existing = state.remoteSites.find((site) => site.config.baseUrl === config.baseUrl && site.config.userId === config.userId);
+      if (!existing) {
+        appendLog(`最多只能保存 ${MAX_REMOTE_SITES} 个远端台子。`, 'error');
+        return;
+      }
+    }
+    const config = remoteConfigFromFields();
+    try {
+      validateRemoteConfig(config);
+    } catch (err) {
+      appendLog(`台子配置不可用：${err.message}`, 'error');
+      return;
+    }
+    const name = remoteSiteNameFromField(undefined, config);
+    saveActiveRemoteSiteWorkspace();
+    let site = state.remoteSites.find((item) => item.config.baseUrl === config.baseUrl && item.config.userId === config.userId);
+    const connection = state.remoteConnection?.baseUrl === config.baseUrl
+      ? normalizeRemoteConnection(state.remoteConnection)
+      : { ...defaultRemoteConnection(), baseUrl: config.baseUrl };
+    if (site) {
+      site.name = name;
+      site.config = config;
+      site.connection = connection;
+      site.updatedAt = nowIso();
+    } else {
+      const workspace = defaultRemoteWorkspace();
+      workspace.formConfig = cloneValue(DEFAULT_CONFIG);
+      site = normalizeRemoteSite({
+        id: `remote-site-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+        name,
+        config,
+        connection,
+        workspace,
+      }, state.remoteSites.length);
+      state.remoteSites.push(site);
+    }
+    applyRemoteSiteToState(site);
+    if (site.workspace?.formConfig) applyConfigToForm(site.workspace.formConfig);
+    saveRemoteSites();
+    refreshWorkspaceViews();
+    appendLog(`已保存并选中台子：${site.name}`);
+  }
+
+  function removeRemoteSiteById(id) {
+    const site = state.remoteSites.find((item) => item.id === id);
+    if (!site) return;
+    const ok = window.confirm(`确认移除台子“${site.name}”？这会删除该台子的本地 key 池、作业、日志和列表缓存。`);
+    if (!ok) return;
+    if (state.activeRemoteSiteId === id && state.monitorTimer) {
+      clearInterval(state.monitorTimer);
+      state.monitorTimer = null;
+    }
+    state.remoteSites = state.remoteSites.filter((item) => item.id !== id);
+    if (state.activeRemoteSiteId === id) {
+      const next = state.remoteSites[0] || null;
+      if (next) {
+        applyRemoteSiteToState(next);
+        if (next.workspace?.formConfig) applyConfigToForm(next.workspace.formConfig);
+      } else {
+        state.activeRemoteSiteId = '';
+        state.remoteConfig = { ...DEFAULT_REMOTE_CONFIG };
+        state.remoteConnection = defaultRemoteConnection();
+        applyWorkspacePayload(defaultRemoteWorkspace(), { keepMode: true, keepRemoteTab: true, keepMonitor: false });
+        resetFormToDefaults();
+      }
+    }
+    saveRemoteSites();
+    refreshWorkspaceViews();
+    appendLog(`已移除台子：${site.name}`);
   }
 
   function modeLabelText() {
@@ -3526,10 +4013,13 @@
     if (label) label.textContent = modeLabelText();
     qsa('[data-nai-remote-tab]', panel).forEach((button) => {
       button.setAttribute('data-active', String(button.getAttribute('data-nai-remote-tab') === state.remoteTab));
+      button.disabled = state.operationMode === 'remote' && !activeRemoteSite();
     });
+    const siteTabs = qs('[data-nai-remote-site-tabs]', panel);
+    if (siteTabs) siteTabs.innerHTML = renderRemoteSiteTabs();
     syncRemoteConfigFields();
     renderRemoteConnectionStatus();
-    renderRemoteChannels();
+    renderRemoteResourceViews();
   }
 
   function setRemoteConnectionState(next) {
@@ -3606,23 +4096,6 @@
     `;
   }
 
-  function saveRemoteConfigFromForm() {
-    state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
-    syncRemoteConfigFields();
-    setRemoteConnectionState({
-      state: 'idle',
-      checkedAt: '',
-      message: '远端连接配置已保存，请点击测试连接。',
-      baseUrl: state.remoteConfig.baseUrl,
-      site: {},
-      account: {},
-      checks: [],
-    });
-    updateModeUi();
-    updateSiteInfo();
-    appendLog('远端连接配置已保存。');
-  }
-
   async function testRemoteConnection() {
     state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
     syncRemoteConfigFields();
@@ -3672,43 +4145,132 @@
     return item ? item[1] : `Type ${type || '-'}`;
   }
 
-  function renderRemoteChannels() {
-    const host = qs('#nai-remoteChannels');
-    const status = qs('#nai-remoteChannelStatus');
-    if (!host) return;
-    if (status) {
-      if (state.remoteChannelsBusy) {
-        status.textContent = '正在读取远端渠道...';
-      } else if (state.remoteChannelsLoaded) {
-        status.textContent = `已读取 ${state.remoteChannels.length} 个远端渠道。`;
-      } else {
-        status.textContent = '尚未读取远端渠道。';
-      }
-    }
+  function shortDateTime(value) {
+    if (!value) return '-';
+    const numeric = Number(value);
+    const date = Number.isFinite(numeric) ? new Date(numeric > 100000000000 ? numeric : numeric * 1000) : new Date(value);
+    if (Number.isNaN(date.getTime())) return String(value);
+    return date.toLocaleString();
+  }
 
-    if (!state.remoteChannels.length) {
-      host.innerHTML = '<div class="nai-empty-state">暂无渠道数据。</div>';
+  function remoteCell(value, className = '') {
+    const text = value === null || value === undefined || value === '' ? '-' : String(value);
+    return `<div class="nai-remote-channel-cell ${className}">${escapeHtml(text)}</div>`;
+  }
+
+  function renderRemoteTable(host, resource, emptyText, columns, rows, gridTemplate) {
+    if (!host) return;
+    if (!rows.length) {
+      host.innerHTML = `<div class="nai-empty-state">${escapeHtml(emptyText)}</div>`;
       return;
     }
-
     host.innerHTML = `
-      <div class="nai-remote-channel-table">
-        <div class="nai-remote-channel-head">ID</div>
-        <div class="nai-remote-channel-head">名称</div>
-        <div class="nai-remote-channel-head">类型</div>
-        <div class="nai-remote-channel-head">分组</div>
-        <div class="nai-remote-channel-head">状态</div>
-        <div class="nai-remote-channel-head">已用额度</div>
-        ${state.remoteChannels.map((channel) => `
-          <div class="nai-remote-channel-cell">#${escapeHtml(channel.id ?? '-')}</div>
-          <div class="nai-remote-channel-cell nai-remote-channel-name">${escapeHtml(channel.name || '(未命名)')}</div>
-          <div class="nai-remote-channel-cell">${escapeHtml(channelTypeName(channel.type))}</div>
-          <div class="nai-remote-channel-cell">${escapeHtml(channel.group || '-')}</div>
-          <div class="nai-remote-channel-cell">${escapeHtml(statusLabel(channel.status))}</div>
-          <div class="nai-remote-channel-cell">${escapeHtml(numericQuota(channel))}</div>
-        `).join('')}
+      <div class="nai-remote-channel-table" style="grid-template-columns: ${escapeHtml(gridTemplate)};">
+        ${columns.map((column) => `<div class="nai-remote-channel-head">${escapeHtml(column)}</div>`).join('')}
+        ${rows.join('')}
       </div>
     `;
+  }
+
+  function updateRemoteResourceStatus(selector, resource, loadingText, loadedText, emptyText) {
+    const status = qs(selector);
+    if (!status) return;
+    if (resource.busy) {
+      status.textContent = loadingText;
+    } else if (resource.loaded) {
+      status.textContent = resource.error || loadedText(resource.items.length, resource.updatedAt);
+    } else {
+      status.textContent = emptyText;
+    }
+  }
+
+  function renderRemoteChannels() {
+    const resource = state.remoteResources.channels;
+    updateRemoteResourceStatus(
+      '#nai-remoteChannelStatus',
+      resource,
+      '正在读取远端渠道...',
+      (count, at) => `已读取 ${count} 个渠道${at ? `，更新时间 ${shortDateTime(at)}` : ''}。`,
+      '尚未读取远端渠道。'
+    );
+    const rows = resource.items.map((channel) => [
+      remoteCell(`#${channel.id ?? '-'}`),
+      remoteCell(channel.name || '(未命名)', 'nai-remote-channel-name'),
+      remoteCell(channelTypeName(channel.type)),
+      remoteCell(channel.group || '-'),
+      remoteCell(statusLabel(channel.status)),
+      remoteCell(numericQuota(channel)),
+    ].join(''));
+    renderRemoteTable(
+      qs('#nai-remoteChannels'),
+      resource,
+      '暂无渠道数据。',
+      ['ID', '名称', '类型', '分组', '状态', '已用额度'],
+      rows,
+      '90px minmax(240px, 1.4fr) minmax(160px, .85fr) minmax(130px, .7fr) 110px 120px'
+    );
+  }
+
+  function renderRemoteLogs() {
+    const resource = state.remoteResources.logs;
+    updateRemoteResourceStatus(
+      '#nai-remoteLogStatus',
+      resource,
+      '正在读取远端日志...',
+      (count, at) => `已读取 ${count} 条日志${at ? `，更新时间 ${shortDateTime(at)}` : ''}。`,
+      '尚未读取远端日志。'
+    );
+    const rows = resource.items.map((log) => [
+      remoteCell(`#${log.id ?? '-'}`),
+      remoteCell(shortDateTime(log.created_at ?? log.created_time ?? log.createdTime ?? log.time)),
+      remoteCell(log.username ?? log.user_name ?? log.userId ?? log.user_id ?? '-'),
+      remoteCell(log.type ?? log.action ?? log.model ?? '-'),
+      remoteCell(log.content ?? log.prompt ?? log.message ?? log.detail ?? log.remark ?? '-', 'nai-remote-channel-name'),
+      remoteCell(firstNonEmpty(log.quota, log.use_quota, log.used_quota, log.usedQuota, log.cost)),
+      remoteCell(log.status ?? log.code ?? '-'),
+    ].join(''));
+    renderRemoteTable(
+      qs('#nai-remoteLogs'),
+      resource,
+      '暂无日志数据。',
+      ['ID', '时间', '用户', '类型/模型', '内容', '额度', '状态'],
+      rows,
+      '86px 170px minmax(120px, .8fr) minmax(150px, .9fr) minmax(260px, 1.5fr) 110px 90px'
+    );
+  }
+
+  function renderRemoteUsers() {
+    const resource = state.remoteResources.users;
+    updateRemoteResourceStatus(
+      '#nai-remoteUserStatus',
+      resource,
+      '正在读取远端用户...',
+      (count, at) => `已读取 ${count} 个用户${at ? `，更新时间 ${shortDateTime(at)}` : ''}。`,
+      '尚未读取远端用户。'
+    );
+    const rows = resource.items.map((user) => [
+      remoteCell(`#${user.id ?? user.uid ?? '-'}`),
+      remoteCell(firstNonEmpty(user.username, user.name, user.display_name, user.email), 'nai-remote-channel-name'),
+      remoteCell(user.group ?? user.role ?? '-'),
+      remoteCell(firstNonEmpty(user.quota, user.remain_quota, user.remaining_quota, user.balance)),
+      remoteCell(firstNonEmpty(user.used_quota, user.usedQuota, user.request_count, user.requestCount)),
+      remoteCell(statusLabel(user.status)),
+      remoteCell(shortDateTime(user.created_at ?? user.created_time ?? user.createdTime)),
+    ].join(''));
+    renderRemoteTable(
+      qs('#nai-remoteUsers'),
+      resource,
+      '暂无用户数据。',
+      ['ID', '用户', '分组/角色', '余额/额度', '已用/请求', '状态', '创建时间'],
+      rows,
+      '86px minmax(220px, 1.2fr) minmax(130px, .7fr) 130px 130px 90px 170px'
+    );
+  }
+
+  function renderRemoteResourceViews() {
+    renderRemoteChannels();
+    renderRemoteLogs();
+    renderRemoteUsers();
   }
 
   function setParamsPaneOpen(open) {
@@ -4518,6 +5080,7 @@
 
     const response = await fetch(url, {
       credentials: 'include',
+
       ...options,
       headers,
     });
@@ -5278,6 +5841,7 @@
         const payload = JSON.parse(String(reader.result || '{}'));
         const ok = window.confirm('导入工作会替换当前 key 池、作业和日志。确认继续？');
         if (!ok) return;
+
         applyWorkspacePayload(payload, { keepMonitor: false });
         persistWorkspaceState();
         updateModeUi();
@@ -5320,9 +5884,7 @@
     state.nameTimestamp = '';
     state.nameDate = '';
     state.randomCodes = new Map();
-    state.remoteChannels = [];
-    state.remoteChannelsLoaded = false;
-    state.remoteChannelsBusy = false;
+    state.remoteResources = defaultRemoteResources();
     localStorage.removeItem(WORKSPACE_STORAGE_KEY);
     resetFormToDefaults();
     const keyInput = qs('#nai-keys');
@@ -5337,6 +5899,13 @@
 
   function resetFormToDefaults() {
     const config = cloneValue(DEFAULT_CONFIG);
+    applyConfigToForm(config);
+  }
+
+  function applyConfigToForm(configInput) {
+    const config = { ...cloneValue(DEFAULT_CONFIG), ...(configInput || {}) };
+    config.nameSegments = normalizeNameSegments(config.nameSegments, config);
+    config.nameSegmentSettings = normalizeNameSegmentSettings(config.nameSegmentSettings, config);
     for (const id of fieldIds) {
       setField(id, config[id] ?? '');
     }
@@ -5483,9 +6052,18 @@
     }
   }
 
-  async function loadRemoteChannels() {
+  function listItemsFromResult(result) {
+    return channelsFromListResult(result);
+  }
+
+  async function loadRemoteResource(kind, options) {
     if (state.operationMode !== 'remote') return;
-    if (state.remoteChannelsBusy) return;
+    if (!activeRemoteSite()) {
+      appendLog('请先新增并选择一个远端台子。', 'error');
+      return;
+    }
+    const resource = state.remoteResources[kind];
+    if (!resource || resource.busy) return;
     state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
     try {
       validateRemoteConfig(state.remoteConfig);
@@ -5494,28 +6072,88 @@
       return;
     }
 
-    state.remoteChannelsBusy = true;
-    renderRemoteChannels();
+    resource.busy = true;
+    resource.error = '';
+    renderRemoteResourceViews();
+    try {
+      let lastError = null;
+      let result = null;
+      let endpoint = '';
+      for (const candidate of options.endpoints) {
+        try {
+          endpoint = candidate;
+          result = await apiRequest(candidate);
+          if (!endpointResultOk(result)) throw new Error(result?.message || '读取失败');
+          break;
+        } catch (err) {
+          lastError = err;
+          result = null;
+        }
+      }
+      if (!result) throw lastError || new Error('读取失败');
+      resource.items = options.normalize(result);
+      resource.loaded = true;
+      resource.updatedAt = nowIso();
+      resource.meta = { endpoint };
+      appendLog(`${options.successPrefix}，共 ${resource.items.length} 条。`);
+    } catch (err) {
+      resource.items = [];
+      resource.loaded = true;
+      resource.error = `${options.errorPrefix}：${err.message}`;
+      appendLog(resource.error, 'error');
+    } finally {
+      resource.busy = false;
+      renderRemoteResourceViews();
+      persistWorkspaceState();
+    }
+  }
+
+  async function loadRemoteChannels() {
     const params = new URLSearchParams({
       p: '1',
       page_size: String(TEMPLATE_PAGE_SIZE),
       id_sort: 'true',
     });
+    return loadRemoteResource('channels', {
+      endpoints: [apiUrl(collectConfig(false), `?${params.toString()}`)],
+      normalize: channelsFromListResult,
+      successPrefix: '已读取渠道列表',
+      errorPrefix: '读取渠道列表失败',
+    });
+  }
 
-    try {
-      const result = await apiRequest(apiUrl(collectConfig(false), `?${params.toString()}`));
-      if (!result?.success) throw new Error(result?.message || '读取失败');
-      state.remoteChannels = channelsFromListResult(result);
-      state.remoteChannelsLoaded = true;
-      appendLog(`已读取远端渠道列表，共 ${state.remoteChannels.length} 个。`);
-    } catch (err) {
-      state.remoteChannels = [];
-      state.remoteChannelsLoaded = true;
-      appendLog(`读取远端渠道列表失败：${err.message}`, 'error');
-    } finally {
-      state.remoteChannelsBusy = false;
-      renderRemoteChannels();
-    }
+  async function loadRemoteLogs() {
+    const params = new URLSearchParams({
+      p: '1',
+      page_size: String(TEMPLATE_PAGE_SIZE),
+    });
+    return loadRemoteResource('logs', {
+      endpoints: [
+        `/api/log/?${params.toString()}`,
+        `/api/log?${params.toString()}`,
+        `/api/log/self?${params.toString()}`,
+      ],
+      normalize: listItemsFromResult,
+      successPrefix: '已读取日志列表',
+      errorPrefix: '读取日志列表失败',
+    });
+  }
+
+  async function loadRemoteUsers() {
+    const params = new URLSearchParams({
+      p: '1',
+      page_size: String(TEMPLATE_PAGE_SIZE),
+    });
+    return loadRemoteResource('users', {
+      endpoints: [
+        `/api/user/?${params.toString()}`,
+        `/api/user?${params.toString()}`,
+        `/api/user/search?${params.toString()}`,
+      ],
+      normalize: listItemsFromResult,
+      successPrefix: '已读取用户列表',
+      errorPrefix: '读取用户列表失败',
+    });
   }
 
   function normalizeGroupsResult(result) {
@@ -5841,9 +6479,11 @@
       '[data-nai-refresh-site]',
       '[data-nai-refresh-groups]',
       '[data-nai-refresh-base-url]',
-      '[data-nai-save-remote-config]',
+      '[data-nai-add-remote-site]',
       '[data-nai-test-remote]',
       '[data-nai-refresh-remote-channels]',
+      '[data-nai-refresh-remote-logs]',
+      '[data-nai-refresh-remote-users]',
       '[data-nai-add-keys]',
       '[data-nai-import-work]',
       '[data-nai-reset-work]',

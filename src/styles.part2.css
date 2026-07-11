@@ -1,0 +1,949 @@
+        background: transparent;
+        color: #aaa7a1;
+        cursor: pointer;
+        font: 750 12px/1 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-key-tab[data-active="true"] {
+        background: #2a2927;
+        color: #efeeeb;
+      }
+
+      .nai-key-tab-panel[hidden] {
+        display: none;
+      }
+
+      .nai-key-tab-panel {
+        min-height: 0;
+        height: clamp(260px, 38vh, 430px);
+        max-height: none;
+        overflow: auto;
+      }
+
+      .nai-key-tab-panel:not([hidden]) {
+        display: block;
+      }
+
+      .nai-key-list {
+        min-height: 0;
+        height: 100%;
+        max-height: none;
+        overflow: auto;
+        border: 1px solid rgba(255, 255, 255, .08);
+        border-radius: 8px;
+        background: #11100f;
+      }
+
+      .nai-key-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) 74px;
+        gap: 8px;
+        padding: 8px 9px;
+        border-bottom: 1px solid rgba(255, 255, 255, .07);
+        color: #cfcac2;
+        font-size: 12px;
+      }
+
+      .nai-key-row:last-child {
+        border-bottom: 0;
+      }
+
+      .nai-key-row strong,
+      .nai-key-row span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .nai-right-placeholder {
+        display: none;
+        flex: 1;
+        height: 100%;
+        min-height: 180px;
+        align-items: center;
+        justify-content: center;
+        text-align: center;
+        color: #9a9690;
+        border: 1px dashed rgba(255, 255, 255, .16);
+        border-radius: 8px;
+        padding: 18px;
+      }
+
+      .nai-bulk-panel[data-nai-right-open="false"] .nai-right-sticky,
+      .nai-bulk-panel[data-nai-right-open="false"] .nai-pane-right-form {
+        display: none;
+      }
+
+      .nai-bulk-panel[data-nai-right-open="false"] .nai-right-placeholder {
+        display: flex;
+      }
+
+      .nai-bulk-panel[data-nai-right-open="false"] .nai-workbench {
+        grid-template-columns: minmax(340px, .98fr) minmax(360px, 1fr) minmax(420px, 1.18fr);
+      }
+
+      .nai-bulk-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 12px;
+      }
+
+      .nai-bulk-field {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        min-width: 0;
+      }
+
+      .nai-bulk-field label,
+      .nai-bulk-check span,
+      .nai-bulk-section-title {
+        color: #d7d4cf;
+        font-weight: 650;
+        font-size: 12px;
+      }
+
+      .nai-bulk-field small,
+      .nai-bulk-help {
+        color: #9a9690;
+        font-size: 12px;
+      }
+
+      .nai-bulk-field input,
+      .nai-bulk-field select,
+      .nai-bulk-field textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 7px;
+        background: #242321;
+        color: #efeeeb;
+        outline: none;
+        padding: 9px 10px;
+        font: 13px/1.35 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-bulk-hidden-select {
+        display: none !important;
+      }
+
+      .nai-type-picker {
+        position: relative;
+      }
+
+      .nai-type-trigger {
+        width: 100%;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        box-sizing: border-box;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 7px;
+        background: #242321;
+        color: #efeeeb;
+        outline: none;
+        padding: 8px 10px;
+        cursor: pointer;
+        font: 13px/1.35 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-type-trigger:hover,
+      .nai-type-trigger[aria-expanded="true"] {
+        border-color: rgba(232, 112, 70, .72);
+        box-shadow: 0 0 0 2px rgba(232, 112, 70, .18);
+      }
+
+      .nai-type-trigger::after {
+        content: "";
+        width: 8px;
+        height: 8px;
+        margin-left: auto;
+        border-right: 2px solid #aaa7a1;
+        border-bottom: 2px solid #aaa7a1;
+        transform: rotate(45deg) translateY(-2px);
+      }
+
+      .nai-type-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        z-index: 2147483647;
+        max-height: 292px;
+        overflow: auto;
+        padding: 6px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 8px;
+        background: #1f1e1c;
+        box-shadow: 0 18px 42px rgba(0, 0, 0, .42);
+      }
+
+      .nai-type-menu[hidden] {
+        display: none;
+      }
+
+      .nai-type-option {
+        width: 100%;
+        display: flex;
+        align-items: center;
+        gap: 9px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #efeeeb;
+        cursor: pointer;
+        padding: 7px 8px;
+        text-align: left;
+        font: 13px/1.35 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-type-option:hover,
+      .nai-type-option:focus {
+        background: #2a2927;
+        outline: none;
+      }
+
+      .nai-type-option[aria-selected="true"] {
+        background: rgba(232, 112, 70, .18);
+        color: #fff4ee;
+      }
+
+      .nai-channel-icon {
+        width: 24px;
+        height: 24px;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        flex: 0 0 auto;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 7px;
+        font: 850 10px/1 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        letter-spacing: .02em;
+      }
+
+      .nai-host-channel-icon svg,
+      .nai-host-channel-icon img {
+        width: 16px;
+        height: 16px;
+        display: block;
+      }
+
+      .nai-type-label {
+        min-width: 0;
+        flex: 1;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .nai-type-id {
+        color: #9a9690;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .nai-bulk-static {
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        box-sizing: border-box;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 7px;
+        background: #201f1d;
+        color: #d7d4cf;
+        padding: 9px 10px;
+        font: 700 13px/1.35 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+        overflow-wrap: anywhere;
+      }
+
+      .nai-bulk-static-disabled {
+        border-color: rgba(255, 255, 255, .08);
+        background: #171615;
+        color: #85817a;
+        cursor: not-allowed;
+        opacity: .9;
+      }
+
+      .nai-bulk-static[data-empty="true"] {
+        color: #aaa7a1;
+        font-family: ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        font-weight: 650;
+      }
+
+      .nai-bulk-static-disabled[data-empty="true"] {
+        color: #85817a;
+      }
+
+      .nai-bulk-field textarea {
+        min-height: 88px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .nai-bulk-field input:focus,
+      .nai-bulk-field select:focus,
+      .nai-bulk-field textarea:focus {
+        border-color: rgba(232, 112, 70, .72);
+        box-shadow: 0 0 0 2px rgba(232, 112, 70, .18);
+      }
+
+      .nai-span-2 { grid-column: span 2; }
+      .nai-span-3 { grid-column: span 3; }
+      .nai-span-4 { grid-column: span 4; }
+      .nai-span-5 { grid-column: span 5; }
+      .nai-span-6 { grid-column: span 6; }
+      .nai-span-7 { grid-column: span 7; }
+      .nai-span-8 { grid-column: span 8; }
+      .nai-span-12 { grid-column: span 12; }
+
+      .nai-bulk-section {
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid rgba(255, 255, 255, .1);
+      }
+
+      .nai-pane > .nai-bulk-section:first-child,
+      .nai-pane-card > .nai-bulk-section:first-child {
+        margin-top: 0;
+        padding-top: 0;
+        border-top: 0;
+      }
+
+      .nai-bulk-inline {
+        display: flex;
+        gap: 8px;
+        align-items: end;
+      }
+
+      .nai-bulk-inline .nai-bulk-field {
+        flex: 1;
+      }
+
+      .nai-bulk-combo-row {
+        display: flex;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .nai-bulk-combo-row > input,
+      .nai-bulk-combo-row > select,
+      .nai-bulk-combo-row > .nai-bulk-static {
+        flex: 1;
+        min-width: 0;
+      }
+
+      .nai-bulk-group-panel {
+        grid-column: span 12;
+        display: block;
+        gap: 12px;
+        align-items: start;
+      }
+
+      .nai-group-picker {
+        position: relative;
+        flex: 1;
+        min-width: 0;
+      }
+
+      .nai-group-trigger {
+        width: 100%;
+        min-height: 38px;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 8px;
+        box-sizing: border-box;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 7px;
+        background: #242321;
+        color: #efeeeb;
+        outline: none;
+        padding: 8px 10px;
+        cursor: pointer;
+        font: 13px/1.35 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-group-trigger:hover,
+      .nai-group-trigger[aria-expanded="true"] {
+        border-color: rgba(232, 112, 70, .72);
+        box-shadow: 0 0 0 2px rgba(232, 112, 70, .18);
+      }
+
+      .nai-group-trigger::after {
+        content: "";
+        width: 8px;
+        height: 8px;
+        flex: 0 0 auto;
+        border-right: 2px solid #aaa7a1;
+        border-bottom: 2px solid #aaa7a1;
+        transform: rotate(45deg) translateY(-2px);
+      }
+
+      .nai-group-trigger-text {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .nai-group-menu {
+        position: absolute;
+        top: calc(100% + 6px);
+        left: 0;
+        right: 0;
+        z-index: 2147483647;
+        max-height: 240px;
+        overflow: auto;
+        padding: 6px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 8px;
+        background: #1f1e1c;
+        box-shadow: 0 18px 42px rgba(0, 0, 0, .42);
+      }
+
+      .nai-group-menu[hidden] {
+        display: none;
+      }
+
+      .nai-group-option {
+        width: 100%;
+        min-height: 32px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #efeeeb;
+        cursor: pointer;
+        padding: 7px 8px;
+        text-align: left;
+        font: 13px/1.35 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-group-option:hover,
+      .nai-group-option:focus {
+        background: #2a2927;
+        outline: none;
+      }
+
+      .nai-group-option[aria-selected="true"] {
+        background: rgba(232, 112, 70, .18);
+        color: #fff4ee;
+      }
+
+      .nai-group-option input {
+        width: 15px;
+        height: 15px;
+        accent-color: #e87046;
+        pointer-events: none;
+      }
+
+      .nai-bulk-name-builder {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        align-items: center;
+      }
+
+      .nai-bulk-plus {
+        color: #aaa7a1;
+        font-weight: 800;
+        text-align: center;
+      }
+
+      .nai-name-segment {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        min-width: 176px;
+      }
+
+      .nai-name-segment-label {
+        color: #d7d4cf;
+        font-weight: 800;
+        font-size: 12px;
+      }
+
+      .nai-name-segment select {
+        min-width: 132px;
+      }
+
+      .nai-name-remove {
+        width: 30px;
+        height: 34px;
+        padding: 0;
+      }
+
+      .nai-name-settings {
+        margin-top: 10px;
+      }
+
+      .nai-name-settings-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 10px;
+      }
+
+      .nai-name-setting-card {
+        grid-column: span 6;
+        display: flex;
+        flex-direction: column;
+        gap: 7px;
+        min-width: 0;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        background: #171615;
+      }
+
+      .nai-name-setting-title {
+        color: #d7d4cf;
+        font-size: 12px;
+        font-weight: 750;
+      }
+
+      .nai-name-setting-row {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .nai-template-row {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr) auto;
+        gap: 10px;
+        align-items: end;
+      }
+
+      .nai-template-label-line {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: baseline;
+        gap: 8px;
+      }
+
+      .nai-template-actions {
+        display: flex;
+        gap: 8px;
+      }
+
+      .nai-job-controls {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 10px;
+        align-items: end;
+      }
+
+      .nai-job-strategy-row {
+        display: grid;
+        grid-template-columns: auto repeat(4, minmax(0, 1fr)) auto;
+        gap: 8px;
+        align-items: end;
+      }
+
+      .nai-create-strategy-row {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .nai-create-strategy-row .nai-bulk-check,
+      .nai-create-strategy-row .nai-job-strategy-apply {
+        grid-column: span 2;
+      }
+
+      .nai-job-strategy-field {
+        display: grid;
+        grid-template-columns: auto minmax(0, 1fr) auto;
+        align-items: center;
+        gap: 6px;
+      }
+
+      .nai-job-strategy-field label {
+        color: #aaa7a1;
+        font-size: 12px;
+        font-weight: 750;
+        white-space: nowrap;
+      }
+
+      .nai-job-strategy-field input {
+        width: 100%;
+        box-sizing: border-box;
+        min-height: 34px;
+        padding: 7px 8px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 7px;
+        background: #242321;
+        color: #efeeeb;
+        outline: none;
+        font: 13px/1.35 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-job-strategy-field input:focus {
+        border-color: rgba(232, 112, 70, .72);
+        box-shadow: 0 0 0 2px rgba(232, 112, 70, .18);
+      }
+
+      .nai-job-strategy-unit {
+        color: #aaa7a1;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .nai-job-strategy-apply[data-dirty="true"] {
+        border-color: #e87046;
+        background: #e87046;
+        color: #1d100a;
+        font-weight: 800;
+      }
+
+      .nai-job-preview-card {
+        display: grid;
+        gap: 8px;
+        padding: 10px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        background: #141312;
+      }
+
+      .nai-job-preview-row {
+        display: grid;
+        grid-template-columns: 88px minmax(0, 1fr);
+        gap: 8px;
+        color: #cfcac2;
+        font-size: 12px;
+      }
+
+      .nai-job-preview-row span:first-child {
+        color: #8f8a82;
+        font-weight: 750;
+      }
+
+      .nai-job-preview-row strong {
+        color: #efeeeb;
+        overflow-wrap: anywhere;
+      }
+
+      .nai-job-stats {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 10px;
+      }
+
+      .nai-job-stat {
+        min-width: 0;
+        padding: 9px 10px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        background: #171615;
+      }
+
+      .nai-job-stat-label {
+        color: #9a9690;
+        font-size: 11px;
+        font-weight: 650;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+      }
+
+      .nai-job-stat-value {
+        margin-top: 3px;
+        color: #efeeeb;
+        font-size: 13px;
+        font-weight: 800;
+        overflow-wrap: anywhere;
+      }
+
+      .nai-job-batches {
+        margin-top: 10px;
+        max-height: 110px;
+        overflow: auto;
+        border: 1px solid rgba(255, 255, 255, .08);
+        border-radius: 8px;
+        background: #11100f;
+      }
+
+      .nai-job-batch-row {
+        display: grid;
+        grid-template-columns: 52px minmax(0, 1fr) 72px 72px;
+        gap: 8px;
+        padding: 7px 9px;
+        border-bottom: 1px solid rgba(255, 255, 255, .07);
+        color: #cfcac2;
+        font-size: 12px;
+      }
+
+      .nai-job-batch-row:last-child {
+        border-bottom: 0;
+      }
+
+      .nai-job-tabs {
+        display: flex;
+        gap: 6px;
+        padding: 3px;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 8px;
+        background: #11100f;
+      }
+
+      .nai-job-tab {
+        flex: 1;
+        min-height: 32px;
+        border: 0;
+        border-radius: 6px;
+        background: transparent;
+        color: #aaa7a1;
+        cursor: pointer;
+        font: 750 12px/1 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-job-tab[data-active="true"] {
+        background: #2a2927;
+        color: #efeeeb;
+      }
+
+      .nai-job-tab-panel[hidden] {
+        display: none;
+      }
+
+      .nai-pane-center > .nai-pane-card:last-child {
+        grid-row: 4;
+        height: clamp(330px, 46vh, 500px);
+        min-height: 0;
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+      }
+
+      .nai-job-tab-panel {
+        min-height: 0;
+        flex: 1 1 auto;
+        overflow: hidden;
+      }
+
+      .nai-job-tab-panel:not([hidden]) {
+        display: flex;
+        flex-direction: column;
+      }
+
+      #nai-jobStatsPanel .nai-job-stats,
+      #nai-jobBatchesPanel .nai-job-batches {
+        flex: 1 1 auto;
+        min-height: 0;
+        overflow: auto;
+      }
+
+      #nai-jobStatsPanel .nai-job-stats {
+        max-height: none;
+        align-content: start;
+      }
+
+      #nai-jobBatchesPanel .nai-job-batches {
+        max-height: none;
+      }
+
+      #nai-jobLogsPanel .nai-bulk-log {
+        flex: 1 1 auto;
+        min-height: 0;
+        max-height: none;
+      }
+
+      .nai-bulk-small-button {
+        height: 36px;
+        padding: 0 10px;
+        white-space: nowrap;
+      }
+
+      .nai-bulk-small-button:hover,
+      .nai-bulk-close:hover,
+      .nai-bulk-action:hover {
+        background: #34322f;
+      }
+
+      .nai-bulk-checks {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px 14px;
+      }
+
+      .nai-bulk-check {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        min-height: 30px;
+      }
+
+      .nai-bulk-check input {
+        width: 16px;
+        height: 16px;
+        accent-color: #e87046;
+      }
+
+      .nai-bulk-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        padding: 12px 16px;
+        border-top: 1px solid rgba(255, 255, 255, .1);
+        background: #171615;
+      }
+
+      .nai-bulk-action {
+        min-height: 38px;
+        padding: 0 14px;
+      }
+
+      .nai-bulk-action-primary {
+        background: #e87046;
+        color: #1d100a;
+        border-color: #e87046;
+        font-weight: 700;
+      }
+
+      .nai-bulk-action-primary:hover {
+        background: #f07f55;
+      }
+
+      .nai-bulk-action:disabled,
+      .nai-bulk-small-button:disabled {
+        opacity: .52;
+        cursor: not-allowed;
+      }
+
+      .nai-bulk-preview {
+        max-height: 220px;
+        overflow: auto;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+      }
+
+      .nai-bulk-preview table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 12px;
+      }
+
+      .nai-bulk-preview th,
+      .nai-bulk-preview td {
+        text-align: left;
+        padding: 8px 9px;
+        border-bottom: 1px solid rgba(255, 255, 255, .08);
+        vertical-align: top;
+      }
+
+      .nai-bulk-preview th {
+        position: sticky;
+        top: 0;
+        background: #20201e;
+        color: #cfcac2;
+      }
+
+      .nai-bulk-log {
+        min-height: 92px;
+        max-height: 180px;
+        overflow: auto;
+        white-space: pre-wrap;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        background: #11100f;
+        color: #c9d6d0;
+        padding: 10px;
+        font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .nai-bulk-muted {
+        color: #aaa7a1;
+      }
+
+      .nai-bulk-ok { color: #77d1a1; }
+      .nai-bulk-error { color: #ff9a8c; }
+
+      details.nai-bulk-details summary {
+        cursor: pointer;
+        color: #d7d4cf;
+        font-weight: 650;
+        font-size: 12px;
+        margin-bottom: 10px;
+      }
+
+      @media (max-width: 720px) {
+        .nai-bulk-panel {
+          top: 10px;
+          right: 10px;
+          width: calc(100vw - 20px);
+          max-height: calc(100vh - 20px);
+        }
+        .nai-workbench,
+        .nai-bulk-panel[data-nai-right-open="false"] .nai-workbench {
+          grid-template-columns: 1fr;
+          height: auto;
+          min-height: 0;
+        }
+        .nai-pane {
+          height: auto;
+          max-height: none;
+        }
+        .nai-pane-left,
+        .nai-pane-center {
+          display: flex;
+          overflow: auto;
+        }
+        .nai-pane-half {
+          overflow: visible;
+        }
+        .nai-bulk-group-panel,
+        .nai-template-row,
+        .nai-job-controls,
+        .nai-job-strategy-row,
+        .nai-name-setting-row {
+          grid-template-columns: 1fr;
+        }
+        .nai-span-2,
+        .nai-span-3,
+        .nai-span-4,
+        .nai-span-5,
+        .nai-span-6,
+        .nai-span-7,
+        .nai-span-8 {
+          grid-column: span 12;
+        }
+        .nai-bulk-name-builder {
+          flex-direction: column;
+          align-items: stretch;
+        }
+        .nai-bulk-plus {
+          display: none;
+        }
+        .nai-name-segment,
+        .nai-name-segment select,
+        .nai-name-setting-card {
+          width: 100%;
+          grid-column: span 12;
+        }
+        .nai-job-stats {
+          grid-template-columns: 1fr 1fr;
+        }
+        .nai-job-batch-row {
+          grid-template-columns: 44px minmax(0, 1fr) 60px;
+        }
+        .nai-job-batch-row span:nth-child(4) {
+          display: none;
+        }
+        .nai-template-actions {
+          justify-content: flex-start;
+        }
+        .nai-mode-chooser,
+        .nai-remote-config-grid,
+        .nai-remote-status-grid,
+        .nai-remote-checks {
+          grid-template-columns: 1fr;
+        }
+        .nai-mode-card {
+          min-height: 150px;
+        }
+        .nai-remote-config-actions {
+          justify-content: flex-start;
+        }
+      }

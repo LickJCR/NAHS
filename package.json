@@ -1,0 +1,6 @@
+{
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "check": "npm run build && node --check newapi-helper-suite.user.js"
+  }
+}

@@ -53,6 +53,22 @@ https://raw.githubusercontent.com/LickJCR/NAHS/main/newapi-helper-suite.user.js
 
 key 池为空时也可以先创建作业，后续继续入库 key 后，作业会在自动监控时补货。
 
+## 开发
+
+仓库使用多文件源码、单文件发布的方式：
+
+- `src/` 是开发源码。
+- `src/styles.css` 是注入到脚本里的样式。
+- `scripts/build.mjs` 会把源码拼成 `newapi-helper-suite.user.js`。
+- `newapi-helper-suite.user.js` 是油猴安装和自动更新使用的发布产物，不建议直接编辑。
+
+修改源码后运行：
+
+```bash
+npm run build
+npm run check
+```
+
 ## 安全说明
 
 - API key 不会写入脚本仓库。

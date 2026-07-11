@@ -1,5 +1,10 @@
 # Changelog
 
+## Development
+
+- Split the userscript source into `src/` files and added `scripts/build.mjs`.
+- Keep `newapi-helper-suite.user.js` as the generated Tampermonkey release file.
+
 ## 0.5.3
 
 - Split the left and center workbench panes into fixed upper/lower halves.

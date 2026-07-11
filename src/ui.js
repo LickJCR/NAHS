@@ -367,6 +367,7 @@
               <button type="button" class="nai-bulk-small-button" data-nai-test-remote>测试连接</button>
             </div>
           </div>
+          <div id="nai-remoteConnectionStatus" class="nai-remote-status" data-state="idle"></div>
         </section>
         <div class="nai-remote-only nai-remote-tabs" data-nai-remote-tabs>
           <button type="button" class="nai-remote-tab" data-nai-remote-tab="bulk" data-active="true">批量添加</button>
@@ -972,6 +973,15 @@
 
   function updateRemoteConfigPreview() {
     state.remoteConfig = remoteConfigFromFields();
+    setRemoteConnectionState({
+      state: 'idle',
+      checkedAt: '',
+      message: '连接配置已变更，请重新测试。',
+      baseUrl: state.remoteConfig.baseUrl,
+      site: {},
+      account: {},
+      checks: [],
+    });
     updateSiteInfo();
   }
 
@@ -1031,27 +1041,141 @@
       button.setAttribute('data-active', String(button.getAttribute('data-nai-remote-tab') === state.remoteTab));
     });
     syncRemoteConfigFields();
+    renderRemoteConnectionStatus();
     renderRemoteChannels();
+  }
+
+  function setRemoteConnectionState(next) {
+    state.remoteConnection = {
+      state: next.state || 'idle',
+      checkedAt: next.checkedAt || '',
+      message: next.message || '',
+      baseUrl: next.baseUrl || state.remoteConfig.baseUrl || '',
+      site: next.site || {},
+      account: next.account || {},
+      checks: Array.isArray(next.checks) ? next.checks : [],
+    };
+    renderRemoteConnectionStatus();
+  }
+
+  function remoteStatusLabel(value) {
+    if (value === 'testing') return '测试中';
+    if (value === 'ok') return '连接成功';
+    if (value === 'error') return '连接失败';
+    return '未测试';
+  }
+
+  function remoteSummaryCell(label, value) {
+    const text = value === null || value === undefined || value === '' ? '-' : String(value);
+    return `
+      <div class="nai-remote-status-cell">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(text)}</strong>
+      </div>
+    `;
+  }
+
+  function renderRemoteCheckItems(checks = []) {
+    if (!checks.length) return '<div class="nai-remote-check-empty">暂无 API 检查结果。</div>';
+    return checks.map((item) => `
+      <div class="nai-remote-check" data-ok="${item.ok ? 'true' : 'false'}">
+        <span>${escapeHtml(item.label || item.url || '-')}</span>
+        <strong>${escapeHtml(item.detail || (item.ok ? 'OK' : '失败'))}</strong>
+      </div>
+    `).join('');
+  }
+
+  function renderRemoteConnectionStatus() {
+    const host = qs('#nai-remoteConnectionStatus');
+    if (!host) return;
+    const connection = state.remoteConnection || {};
+    const site = connection.site || {};
+    const account = connection.account || {};
+    const checkedAt = connection.checkedAt
+      ? new Date(connection.checkedAt).toLocaleString()
+      : '-';
+    host.setAttribute('data-state', connection.state || 'idle');
+    host.innerHTML = `
+      <div class="nai-remote-status-head">
+        <span class="nai-remote-status-dot" aria-hidden="true"></span>
+        <div>
+          <strong>${escapeHtml(remoteStatusLabel(connection.state))}</strong>
+          <span>${escapeHtml(connection.message || '尚未测试远端连接。')}</span>
+        </div>
+      </div>
+      <div class="nai-remote-status-grid">
+        ${remoteSummaryCell('远端地址', connection.baseUrl || state.remoteConfig.baseUrl)}
+        ${remoteSummaryCell('站点名称', site.name)}
+        ${remoteSummaryCell('站点版本', site.version)}
+        ${remoteSummaryCell('账号 ID', account.id || state.remoteConfig.userId)}
+        ${remoteSummaryCell('账号名称', account.name)}
+        ${remoteSummaryCell('账号分组', account.group)}
+        ${remoteSummaryCell('余额/额度', account.quota)}
+        ${remoteSummaryCell('检测时间', checkedAt)}
+      </div>
+      <div class="nai-remote-checks">
+        ${renderRemoteCheckItems(connection.checks)}
+      </div>
+    `;
   }
 
   function saveRemoteConfigFromForm() {
     state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
+    syncRemoteConfigFields();
+    setRemoteConnectionState({
+      state: 'idle',
+      checkedAt: '',
+      message: '远端连接配置已保存，请点击测试连接。',
+      baseUrl: state.remoteConfig.baseUrl,
+      site: {},
+      account: {},
+      checks: [],
+    });
     updateModeUi();
     updateSiteInfo();
     appendLog('远端连接配置已保存。');
   }
 
   async function testRemoteConnection() {
+    state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
+    syncRemoteConfigFields();
+    updateSiteInfo();
+    setRemoteConnectionState({
+      state: 'testing',
+      checkedAt: '',
+      message: '正在读取站点、账号和 API 状态...',
+      baseUrl: state.remoteConfig.baseUrl,
+      site: {},
+      account: { id: state.remoteConfig.userId },
+      checks: [],
+    });
     try {
-      state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
       validateRemoteConfig(state.remoteConfig);
-      const result = await apiRequest(GROUPS_API);
-      if (!result?.success) throw new Error(result?.message || '连接失败');
-      const groups = normalizeGroupsResult(result);
-      updateGroupOptions(groups);
+      const result = await inspectRemoteConnection();
+      if (result.groups) {
+        updateGroupOptions(result.groups);
+      }
       updateModeUi();
-      appendLog(`远端连接成功，读取到 ${groups.length} 个分组。`);
+      setRemoteConnectionState({
+        state: 'ok',
+        checkedAt: nowIso(),
+        message: result.message,
+        baseUrl: state.remoteConfig.baseUrl,
+        site: result.site,
+        account: result.account,
+        checks: result.checks,
+      });
+      appendLog(result.message);
     } catch (err) {
+      setRemoteConnectionState({
+        state: 'error',
+        checkedAt: nowIso(),
+        message: err.message,
+        baseUrl: state.remoteConfig.baseUrl,
+        site: {},
+        account: { id: state.remoteConfig.userId },
+        checks: [],
+      });
       appendLog(`远端连接失败：${err.message}`, 'error');
     }
   }

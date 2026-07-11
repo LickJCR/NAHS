@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.6.0
+// @version      0.6.1
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
 // @author       al90slj23
 // @license      MIT
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.6.0';
+  const SCRIPT_VERSION = '0.6.1';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
@@ -329,6 +329,15 @@
     operationMode: 'choose',
     remoteTab: 'bulk',
     remoteConfig: { ...DEFAULT_REMOTE_CONFIG },
+    remoteConnection: {
+      state: 'idle',
+      checkedAt: '',
+      message: '尚未测试远端连接。',
+      baseUrl: '',
+      site: {},
+      account: {},
+      checks: [],
+    },
     remoteChannels: [],
     remoteChannelsLoaded: false,
     remoteChannelsBusy: false,
@@ -523,10 +532,15 @@
   }
 
   function normalizeRemoteBaseUrl(value) {
-    const text = String(value || '').trim().replace(/\/+$/u, '');
+    const text = String(value || '').trim();
     if (!text) return '';
-    if (/^https?:\/\//iu.test(text)) return text;
-    return `https://${text}`;
+    const withProtocol = /^https?:\/\//iu.test(text) ? text : `https://${text}`;
+    try {
+      const url = new URL(withProtocol);
+      return url.origin.replace(/\/+$/u, '');
+    } catch {
+      return withProtocol.replace(/\/+$/u, '');
+    }
   }
 
   function normalizeRemoteConfig(value = {}) {
@@ -1075,6 +1089,135 @@
         align-items: center;
         justify-content: flex-end;
         padding-bottom: 1px;
+      }
+
+      .nai-remote-status {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        background: #11100f;
+      }
+
+      .nai-remote-status-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .nai-remote-status-head > div {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .nai-remote-status-head strong {
+        color: #efeeeb;
+        font-size: 13px;
+      }
+
+      .nai-remote-status-head span:not(.nai-remote-status-dot) {
+        color: #aaa7a1;
+        font-size: 12px;
+      }
+
+      .nai-remote-status-dot {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: #8a8680;
+        box-shadow: 0 0 0 4px rgba(138, 134, 128, .16);
+      }
+
+      .nai-remote-status[data-state="testing"] .nai-remote-status-dot {
+        background: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, .16);
+      }
+
+      .nai-remote-status[data-state="ok"] .nai-remote-status-dot {
+        background: #22c55e;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, .16);
+      }
+
+      .nai-remote-status[data-state="error"] .nai-remote-status-dot {
+        background: #ef4444;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, .16);
+      }
+
+      .nai-remote-status-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .nai-remote-status-cell {
+        min-width: 0;
+        padding: 9px;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 7px;
+        background: #171514;
+      }
+
+      .nai-remote-status-cell span {
+        display: block;
+        color: #9a9690;
+        font-size: 11px;
+        font-weight: 750;
+      }
+
+      .nai-remote-status-cell strong {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #efeeeb;
+        font-size: 12px;
+      }
+
+      .nai-remote-checks {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .nai-remote-check,
+      .nai-remote-check-empty {
+        min-width: 0;
+        padding: 8px 9px;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 7px;
+        background: #161413;
+      }
+
+      .nai-remote-check {
+        border-left: 3px solid #ef4444;
+      }
+
+      .nai-remote-check[data-ok="true"] {
+        border-left-color: #22c55e;
+      }
+
+      .nai-remote-check span {
+        display: block;
+        color: #c8c3bd;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .nai-remote-check strong,
+      .nai-remote-check-empty {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #aaa7a1;
+        font-size: 11px;
       }
 
       .nai-remote-tabs {
@@ -2326,7 +2469,9 @@
           justify-content: flex-start;
         }
         .nai-mode-chooser,
-        .nai-remote-config-grid {
+        .nai-remote-config-grid,
+        .nai-remote-status-grid,
+        .nai-remote-checks {
           grid-template-columns: 1fr;
         }
         .nai-mode-card {
@@ -2709,6 +2854,7 @@
               <button type="button" class="nai-bulk-small-button" data-nai-test-remote>测试连接</button>
             </div>
           </div>
+          <div id="nai-remoteConnectionStatus" class="nai-remote-status" data-state="idle"></div>
         </section>
         <div class="nai-remote-only nai-remote-tabs" data-nai-remote-tabs>
           <button type="button" class="nai-remote-tab" data-nai-remote-tab="bulk" data-active="true">批量添加</button>
@@ -3314,6 +3460,15 @@
 
   function updateRemoteConfigPreview() {
     state.remoteConfig = remoteConfigFromFields();
+    setRemoteConnectionState({
+      state: 'idle',
+      checkedAt: '',
+      message: '连接配置已变更，请重新测试。',
+      baseUrl: state.remoteConfig.baseUrl,
+      site: {},
+      account: {},
+      checks: [],
+    });
     updateSiteInfo();
   }
 
@@ -3373,27 +3528,141 @@
       button.setAttribute('data-active', String(button.getAttribute('data-nai-remote-tab') === state.remoteTab));
     });
     syncRemoteConfigFields();
+    renderRemoteConnectionStatus();
     renderRemoteChannels();
+  }
+
+  function setRemoteConnectionState(next) {
+    state.remoteConnection = {
+      state: next.state || 'idle',
+      checkedAt: next.checkedAt || '',
+      message: next.message || '',
+      baseUrl: next.baseUrl || state.remoteConfig.baseUrl || '',
+      site: next.site || {},
+      account: next.account || {},
+      checks: Array.isArray(next.checks) ? next.checks : [],
+    };
+    renderRemoteConnectionStatus();
+  }
+
+  function remoteStatusLabel(value) {
+    if (value === 'testing') return '测试中';
+    if (value === 'ok') return '连接成功';
+    if (value === 'error') return '连接失败';
+    return '未测试';
+  }
+
+  function remoteSummaryCell(label, value) {
+    const text = value === null || value === undefined || value === '' ? '-' : String(value);
+    return `
+      <div class="nai-remote-status-cell">
+        <span>${escapeHtml(label)}</span>
+        <strong>${escapeHtml(text)}</strong>
+      </div>
+    `;
+  }
+
+  function renderRemoteCheckItems(checks = []) {
+    if (!checks.length) return '<div class="nai-remote-check-empty">暂无 API 检查结果。</div>';
+    return checks.map((item) => `
+      <div class="nai-remote-check" data-ok="${item.ok ? 'true' : 'false'}">
+        <span>${escapeHtml(item.label || item.url || '-')}</span>
+        <strong>${escapeHtml(item.detail || (item.ok ? 'OK' : '失败'))}</strong>
+      </div>
+    `).join('');
+  }
+
+  function renderRemoteConnectionStatus() {
+    const host = qs('#nai-remoteConnectionStatus');
+    if (!host) return;
+    const connection = state.remoteConnection || {};
+    const site = connection.site || {};
+    const account = connection.account || {};
+    const checkedAt = connection.checkedAt
+      ? new Date(connection.checkedAt).toLocaleString()
+      : '-';
+    host.setAttribute('data-state', connection.state || 'idle');
+    host.innerHTML = `
+      <div class="nai-remote-status-head">
+        <span class="nai-remote-status-dot" aria-hidden="true"></span>
+        <div>
+          <strong>${escapeHtml(remoteStatusLabel(connection.state))}</strong>
+          <span>${escapeHtml(connection.message || '尚未测试远端连接。')}</span>
+        </div>
+      </div>
+      <div class="nai-remote-status-grid">
+        ${remoteSummaryCell('远端地址', connection.baseUrl || state.remoteConfig.baseUrl)}
+        ${remoteSummaryCell('站点名称', site.name)}
+        ${remoteSummaryCell('站点版本', site.version)}
+        ${remoteSummaryCell('账号 ID', account.id || state.remoteConfig.userId)}
+        ${remoteSummaryCell('账号名称', account.name)}
+        ${remoteSummaryCell('账号分组', account.group)}
+        ${remoteSummaryCell('余额/额度', account.quota)}
+        ${remoteSummaryCell('检测时间', checkedAt)}
+      </div>
+      <div class="nai-remote-checks">
+        ${renderRemoteCheckItems(connection.checks)}
+      </div>
+    `;
   }
 
   function saveRemoteConfigFromForm() {
     state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
+    syncRemoteConfigFields();
+    setRemoteConnectionState({
+      state: 'idle',
+      checkedAt: '',
+      message: '远端连接配置已保存，请点击测试连接。',
+      baseUrl: state.remoteConfig.baseUrl,
+      site: {},
+      account: {},
+      checks: [],
+    });
     updateModeUi();
     updateSiteInfo();
     appendLog('远端连接配置已保存。');
   }
 
   async function testRemoteConnection() {
+    state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
+    syncRemoteConfigFields();
+    updateSiteInfo();
+    setRemoteConnectionState({
+      state: 'testing',
+      checkedAt: '',
+      message: '正在读取站点、账号和 API 状态...',
+      baseUrl: state.remoteConfig.baseUrl,
+      site: {},
+      account: { id: state.remoteConfig.userId },
+      checks: [],
+    });
     try {
-      state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
       validateRemoteConfig(state.remoteConfig);
-      const result = await apiRequest(GROUPS_API);
-      if (!result?.success) throw new Error(result?.message || '连接失败');
-      const groups = normalizeGroupsResult(result);
-      updateGroupOptions(groups);
+      const result = await inspectRemoteConnection();
+      if (result.groups) {
+        updateGroupOptions(result.groups);
+      }
       updateModeUi();
-      appendLog(`远端连接成功，读取到 ${groups.length} 个分组。`);
+      setRemoteConnectionState({
+        state: 'ok',
+        checkedAt: nowIso(),
+        message: result.message,
+        baseUrl: state.remoteConfig.baseUrl,
+        site: result.site,
+        account: result.account,
+        checks: result.checks,
+      });
+      appendLog(result.message);
     } catch (err) {
+      setRemoteConnectionState({
+        state: 'error',
+        checkedAt: nowIso(),
+        message: err.message,
+        baseUrl: state.remoteConfig.baseUrl,
+        site: {},
+        account: { id: state.remoteConfig.userId },
+        checks: [],
+      });
       appendLog(`远端连接失败：${err.message}`, 'error');
     }
   }
@@ -4199,6 +4468,7 @@
           headers,
           data: options.body,
           responseType: 'text',
+          timeout: options.timeout || 15000,
           onload: (response) => {
             const data = parseApiResponseText(response.responseText, response.statusText);
             if (response.status < 200 || response.status >= 300) {
@@ -5262,6 +5532,172 @@
       .map((group) => String(group || '').trim())
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
+  }
+
+  function endpointResultOk(result) {
+    return result && result.success !== false;
+  }
+
+  async function inspectRemoteEndpoint(label, url, describe) {
+    try {
+      const result = await apiRequest(url);
+      const ok = endpointResultOk(result);
+      return {
+        label,
+        url,
+        ok,
+        result,
+        detail: ok
+          ? (typeof describe === 'function' ? describe(result) : 'OK')
+          : (result?.message || '返回 success=false'),
+      };
+    } catch (err) {
+      return {
+        label,
+        url,
+        ok: false,
+        result: null,
+        detail: err.message,
+      };
+    }
+  }
+
+  function normalizedObjectKey(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/gu, '');
+  }
+
+  function findDeepValue(value, candidates, depth = 0) {
+    if (!value || typeof value !== 'object' || depth > 5) return '';
+    const wanted = new Set(candidates.map(normalizedObjectKey));
+    for (const [key, item] of Object.entries(value)) {
+      if (wanted.has(normalizedObjectKey(key)) && item !== null && item !== undefined && typeof item !== 'object') {
+        return item;
+      }
+    }
+    for (const item of Object.values(value)) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const found = findDeepValue(item, candidates, depth + 1);
+      if (found !== '') return found;
+    }
+    return '';
+  }
+
+  function firstNonEmpty(...values) {
+    for (const value of values) {
+      if (value !== null && value !== undefined && String(value).trim() !== '') return value;
+    }
+    return '';
+  }
+
+  function formatRemoteQuota(...values) {
+    const parts = values
+      .filter((value) => value !== null && value !== undefined && String(value).trim() !== '')
+      .map((value) => String(value));
+    return parts.length ? parts.join(' / ') : '';
+  }
+
+  function extractRemoteSiteInfo(statusResult, remoteConfig) {
+    const data = statusResult?.data ?? statusResult ?? {};
+    let hostname = remoteConfig.baseUrl;
+    try {
+      hostname = new URL(remoteConfig.baseUrl).hostname;
+    } catch {
+      /* keep base url */
+    }
+    return {
+      name: firstNonEmpty(
+        findDeepValue(data, ['system_name', 'site_name', 'server_name', 'name', 'title', 'app_name']),
+        hostname
+      ),
+      version: firstNonEmpty(
+        findDeepValue(data, ['version', 'system_version', 'newapi_version', 'app_version', 'build_version']),
+        findDeepValue(data, ['commit', 'revision'])
+      ),
+    };
+  }
+
+  function extractRemoteAccountInfo(accountResult, remoteConfig) {
+    const data = accountResult?.data ?? accountResult?.user ?? accountResult ?? {};
+    const quota = formatRemoteQuota(
+      firstNonEmpty(findDeepValue(data, ['remain_quota', 'remaining_quota', 'balance', 'quota'])),
+      firstNonEmpty(findDeepValue(data, ['used_quota', 'usedQuota'])),
+      firstNonEmpty(findDeepValue(data, ['request_count', 'requestCount']))
+    );
+    return {
+      id: firstNonEmpty(findDeepValue(data, ['id', 'uid', 'user_id', 'userId']), remoteConfig.userId),
+      name: firstNonEmpty(
+        findDeepValue(data, ['username', 'user_name', 'display_name', 'displayName', 'name', 'email']),
+        accountResult ? '' : '未读取到账号详情'
+      ),
+      group: firstNonEmpty(findDeepValue(data, ['group', 'group_name', 'groupName', 'role'])),
+      quota,
+    };
+  }
+
+  async function inspectRemoteAccount() {
+    const endpoints = [
+      '/api/user/self',
+      '/api/user',
+      '/api/user/info',
+      '/api/user/profile',
+      '/api/user/status',
+    ];
+    const checks = [];
+    for (const endpoint of endpoints) {
+      const check = await inspectRemoteEndpoint('账号信息', endpoint, '已读取账号信息');
+      checks.push(check);
+      if (check.ok) return { check, checks: [check] };
+    }
+    const last = checks[0] || { label: '账号信息', ok: false, detail: '未配置账号信息接口' };
+    return {
+      check: null,
+      checks: [{
+        label: '账号信息',
+        url: endpoints.join(', '),
+        ok: false,
+        detail: `未读取到账号详情：${last.detail}`,
+      }],
+    };
+  }
+
+  async function inspectRemoteConnection() {
+    const remoteConfig = validateRemoteConfig(state.remoteConfig);
+    const channelParams = new URLSearchParams({
+      p: '1',
+      page_size: '1',
+      id_sort: 'true',
+    });
+    const [statusCheck, groupCheck, channelCheck] = await Promise.all([
+      inspectRemoteEndpoint('站点状态', '/api/status', (result) => {
+        const site = extractRemoteSiteInfo(result, remoteConfig);
+        return site.version ? `${site.name} / ${site.version}` : site.name;
+      }),
+      inspectRemoteEndpoint('分组 API', GROUPS_API, (result) => `${normalizeGroupsResult(result).length} 个分组`),
+      inspectRemoteEndpoint('渠道 API', `${API_ROOT}?${channelParams.toString()}`, (result) => {
+        const channels = channelsFromListResult(result);
+        const total = firstNonEmpty(findDeepValue(result, ['total', 'count', 'total_count', 'totalCount']));
+        return total ? `${total} 个渠道` : `读取到 ${channels.length} 条样本`;
+      }),
+    ]);
+    const accountProbe = await inspectRemoteAccount();
+    const checks = [statusCheck, groupCheck, channelCheck, ...accountProbe.checks];
+    const usable = groupCheck.ok || channelCheck.ok;
+    if (!usable) {
+      const failure = checks.find((item) => !item.ok);
+      throw new Error(failure ? `${failure.label} 失败：${failure.detail}` : '远端 API 验证失败。');
+    }
+    const groups = groupCheck.ok ? normalizeGroupsResult(groupCheck.result) : null;
+    const site = extractRemoteSiteInfo(statusCheck.ok ? statusCheck.result : null, remoteConfig);
+    const account = extractRemoteAccountInfo(accountProbe.check?.result || null, remoteConfig);
+    const channelDetail = channelCheck.ok ? channelCheck.detail : '渠道 API 未通过';
+    const groupDetail = groupCheck.ok ? groupCheck.detail : '分组 API 未通过';
+    return {
+      site,
+      account,
+      groups,
+      checks,
+      message: `远端连接成功：${site.name || remoteConfig.baseUrl}，${groupDetail}，${channelDetail}。`,
+    };
   }
 
   function updateGroupOptions(groups) {

@@ -4,6 +4,12 @@
 
 - No unreleased changes.
 
+## 0.6.1
+
+- Show a visible remote connection status panel for idle, testing, success, and failure states.
+- Display remote site, account, group, channel, and API check details after testing a remote connection.
+- Normalize pasted NewAPI page URLs to the site origin before building remote API requests.
+
 ## 0.6.0
 
 - Add a top-level mode chooser for current-browser NewAPI operations and remote NewAPI operations.

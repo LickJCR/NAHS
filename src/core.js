@@ -708,6 +708,7 @@
           headers,
           data: options.body,
           responseType: 'text',
+          timeout: options.timeout || 15000,
           onload: (response) => {
             const data = parseApiResponseText(response.responseText, response.statusText);
             if (response.status < 200 || response.status >= 300) {
@@ -1771,6 +1772,172 @@
       .map((group) => String(group || '').trim())
       .filter(Boolean)
       .sort((a, b) => a.localeCompare(b));
+  }
+
+  function endpointResultOk(result) {
+    return result && result.success !== false;
+  }
+
+  async function inspectRemoteEndpoint(label, url, describe) {
+    try {
+      const result = await apiRequest(url);
+      const ok = endpointResultOk(result);
+      return {
+        label,
+        url,
+        ok,
+        result,
+        detail: ok
+          ? (typeof describe === 'function' ? describe(result) : 'OK')
+          : (result?.message || '返回 success=false'),
+      };
+    } catch (err) {
+      return {
+        label,
+        url,
+        ok: false,
+        result: null,
+        detail: err.message,
+      };
+    }
+  }
+
+  function normalizedObjectKey(value) {
+    return String(value || '').toLowerCase().replace(/[^a-z0-9\u4e00-\u9fa5]/gu, '');
+  }
+
+  function findDeepValue(value, candidates, depth = 0) {
+    if (!value || typeof value !== 'object' || depth > 5) return '';
+    const wanted = new Set(candidates.map(normalizedObjectKey));
+    for (const [key, item] of Object.entries(value)) {
+      if (wanted.has(normalizedObjectKey(key)) && item !== null && item !== undefined && typeof item !== 'object') {
+        return item;
+      }
+    }
+    for (const item of Object.values(value)) {
+      if (!item || typeof item !== 'object' || Array.isArray(item)) continue;
+      const found = findDeepValue(item, candidates, depth + 1);
+      if (found !== '') return found;
+    }
+    return '';
+  }
+
+  function firstNonEmpty(...values) {
+    for (const value of values) {
+      if (value !== null && value !== undefined && String(value).trim() !== '') return value;
+    }
+    return '';
+  }
+
+  function formatRemoteQuota(...values) {
+    const parts = values
+      .filter((value) => value !== null && value !== undefined && String(value).trim() !== '')
+      .map((value) => String(value));
+    return parts.length ? parts.join(' / ') : '';
+  }
+
+  function extractRemoteSiteInfo(statusResult, remoteConfig) {
+    const data = statusResult?.data ?? statusResult ?? {};
+    let hostname = remoteConfig.baseUrl;
+    try {
+      hostname = new URL(remoteConfig.baseUrl).hostname;
+    } catch {
+      /* keep base url */
+    }
+    return {
+      name: firstNonEmpty(
+        findDeepValue(data, ['system_name', 'site_name', 'server_name', 'name', 'title', 'app_name']),
+        hostname
+      ),
+      version: firstNonEmpty(
+        findDeepValue(data, ['version', 'system_version', 'newapi_version', 'app_version', 'build_version']),
+        findDeepValue(data, ['commit', 'revision'])
+      ),
+    };
+  }
+
+  function extractRemoteAccountInfo(accountResult, remoteConfig) {
+    const data = accountResult?.data ?? accountResult?.user ?? accountResult ?? {};
+    const quota = formatRemoteQuota(
+      firstNonEmpty(findDeepValue(data, ['remain_quota', 'remaining_quota', 'balance', 'quota'])),
+      firstNonEmpty(findDeepValue(data, ['used_quota', 'usedQuota'])),
+      firstNonEmpty(findDeepValue(data, ['request_count', 'requestCount']))
+    );
+    return {
+      id: firstNonEmpty(findDeepValue(data, ['id', 'uid', 'user_id', 'userId']), remoteConfig.userId),
+      name: firstNonEmpty(
+        findDeepValue(data, ['username', 'user_name', 'display_name', 'displayName', 'name', 'email']),
+        accountResult ? '' : '未读取到账号详情'
+      ),
+      group: firstNonEmpty(findDeepValue(data, ['group', 'group_name', 'groupName', 'role'])),
+      quota,
+    };
+  }
+
+  async function inspectRemoteAccount() {
+    const endpoints = [
+      '/api/user/self',
+      '/api/user',
+      '/api/user/info',
+      '/api/user/profile',
+      '/api/user/status',
+    ];
+    const checks = [];
+    for (const endpoint of endpoints) {
+      const check = await inspectRemoteEndpoint('账号信息', endpoint, '已读取账号信息');
+      checks.push(check);
+      if (check.ok) return { check, checks: [check] };
+    }
+    const last = checks[0] || { label: '账号信息', ok: false, detail: '未配置账号信息接口' };
+    return {
+      check: null,
+      checks: [{
+        label: '账号信息',
+        url: endpoints.join(', '),
+        ok: false,
+        detail: `未读取到账号详情：${last.detail}`,
+      }],
+    };
+  }
+
+  async function inspectRemoteConnection() {
+    const remoteConfig = validateRemoteConfig(state.remoteConfig);
+    const channelParams = new URLSearchParams({
+      p: '1',
+      page_size: '1',
+      id_sort: 'true',
+    });
+    const [statusCheck, groupCheck, channelCheck] = await Promise.all([
+      inspectRemoteEndpoint('站点状态', '/api/status', (result) => {
+        const site = extractRemoteSiteInfo(result, remoteConfig);
+        return site.version ? `${site.name} / ${site.version}` : site.name;
+      }),
+      inspectRemoteEndpoint('分组 API', GROUPS_API, (result) => `${normalizeGroupsResult(result).length} 个分组`),
+      inspectRemoteEndpoint('渠道 API', `${API_ROOT}?${channelParams.toString()}`, (result) => {
+        const channels = channelsFromListResult(result);
+        const total = firstNonEmpty(findDeepValue(result, ['total', 'count', 'total_count', 'totalCount']));
+        return total ? `${total} 个渠道` : `读取到 ${channels.length} 条样本`;
+      }),
+    ]);
+    const accountProbe = await inspectRemoteAccount();
+    const checks = [statusCheck, groupCheck, channelCheck, ...accountProbe.checks];
+    const usable = groupCheck.ok || channelCheck.ok;
+    if (!usable) {
+      const failure = checks.find((item) => !item.ok);
+      throw new Error(failure ? `${failure.label} 失败：${failure.detail}` : '远端 API 验证失败。');
+    }
+    const groups = groupCheck.ok ? normalizeGroupsResult(groupCheck.result) : null;
+    const site = extractRemoteSiteInfo(statusCheck.ok ? statusCheck.result : null, remoteConfig);
+    const account = extractRemoteAccountInfo(accountProbe.check?.result || null, remoteConfig);
+    const channelDetail = channelCheck.ok ? channelCheck.detail : '渠道 API 未通过';
+    const groupDetail = groupCheck.ok ? groupCheck.detail : '分组 API 未通过';
+    return {
+      site,
+      account,
+      groups,
+      checks,
+      message: `远端连接成功：${site.name || remoteConfig.baseUrl}，${groupDetail}，${channelDetail}。`,
+    };
   }
 
   function updateGroupOptions(groups) {

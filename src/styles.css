@@ -309,6 +309,135 @@
         padding-bottom: 1px;
       }
 
+      .nai-remote-status {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        background: #11100f;
+      }
+
+      .nai-remote-status-head {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        margin-bottom: 10px;
+      }
+
+      .nai-remote-status-head > div {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+      }
+
+      .nai-remote-status-head strong {
+        color: #efeeeb;
+        font-size: 13px;
+      }
+
+      .nai-remote-status-head span:not(.nai-remote-status-dot) {
+        color: #aaa7a1;
+        font-size: 12px;
+      }
+
+      .nai-remote-status-dot {
+        width: 10px;
+        height: 10px;
+        flex: 0 0 auto;
+        border-radius: 999px;
+        background: #8a8680;
+        box-shadow: 0 0 0 4px rgba(138, 134, 128, .16);
+      }
+
+      .nai-remote-status[data-state="testing"] .nai-remote-status-dot {
+        background: #f59e0b;
+        box-shadow: 0 0 0 4px rgba(245, 158, 11, .16);
+      }
+
+      .nai-remote-status[data-state="ok"] .nai-remote-status-dot {
+        background: #22c55e;
+        box-shadow: 0 0 0 4px rgba(34, 197, 94, .16);
+      }
+
+      .nai-remote-status[data-state="error"] .nai-remote-status-dot {
+        background: #ef4444;
+        box-shadow: 0 0 0 4px rgba(239, 68, 68, .16);
+      }
+
+      .nai-remote-status-grid {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+      }
+
+      .nai-remote-status-cell {
+        min-width: 0;
+        padding: 9px;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 7px;
+        background: #171514;
+      }
+
+      .nai-remote-status-cell span {
+        display: block;
+        color: #9a9690;
+        font-size: 11px;
+        font-weight: 750;
+      }
+
+      .nai-remote-status-cell strong {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #efeeeb;
+        font-size: 12px;
+      }
+
+      .nai-remote-checks {
+        display: grid;
+        grid-template-columns: repeat(4, minmax(0, 1fr));
+        gap: 8px;
+        margin-top: 8px;
+      }
+
+      .nai-remote-check,
+      .nai-remote-check-empty {
+        min-width: 0;
+        padding: 8px 9px;
+        border: 1px solid rgba(255, 255, 255, .09);
+        border-radius: 7px;
+        background: #161413;
+      }
+
+      .nai-remote-check {
+        border-left: 3px solid #ef4444;
+      }
+
+      .nai-remote-check[data-ok="true"] {
+        border-left-color: #22c55e;
+      }
+
+      .nai-remote-check span {
+        display: block;
+        color: #c8c3bd;
+        font-size: 11px;
+        font-weight: 800;
+      }
+
+      .nai-remote-check strong,
+      .nai-remote-check-empty {
+        display: block;
+        margin-top: 3px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: #aaa7a1;
+        font-size: 11px;
+      }
+
       .nai-remote-tabs {
         display: flex;
         gap: 8px;
@@ -1558,7 +1687,9 @@
           justify-content: flex-start;
         }
         .nai-mode-chooser,
-        .nai-remote-config-grid {
+        .nai-remote-config-grid,
+        .nai-remote-status-grid,
+        .nai-remote-checks {
           grid-template-columns: 1fr;
         }
         .nai-mode-card {

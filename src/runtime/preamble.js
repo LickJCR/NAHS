@@ -2,7 +2,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.6.0';
+  const SCRIPT_VERSION = '0.6.1';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
@@ -308,6 +308,15 @@
     operationMode: 'choose',
     remoteTab: 'bulk',
     remoteConfig: { ...DEFAULT_REMOTE_CONFIG },
+    remoteConnection: {
+      state: 'idle',
+      checkedAt: '',
+      message: '尚未测试远端连接。',
+      baseUrl: '',
+      site: {},
+      account: {},
+      checks: [],
+    },
     remoteChannels: [],
     remoteChannelsLoaded: false,
     remoteChannelsBusy: false,
@@ -502,10 +511,15 @@
   }
 
   function normalizeRemoteBaseUrl(value) {
-    const text = String(value || '').trim().replace(/\/+$/u, '');
+    const text = String(value || '').trim();
     if (!text) return '';
-    if (/^https?:\/\//iu.test(text)) return text;
-    return `https://${text}`;
+    const withProtocol = /^https?:\/\//iu.test(text) ? text : `https://${text}`;
+    try {
+      const url = new URL(withProtocol);
+      return url.origin.replace(/\/+$/u, '');
+    } catch {
+      return withProtocol.replace(/\/+$/u, '');
+    }
   }
 
   function normalizeRemoteConfig(value = {}) {

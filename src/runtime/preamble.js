@@ -2,10 +2,11 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.5.3';
+  const SCRIPT_VERSION = '0.6.0';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
+  const REMOTE_CONFIG_STORAGE_KEY = 'nai:bulk-channel-importer:remote-config:v1';
   const BUTTON_POSITION_KEY = 'nai:bulk-channel-importer:button-position:v1';
   const API_ROOT = '/api/channel';
   const GROUPS_API = '/api/group/';
@@ -296,7 +297,20 @@
     other: '',
   };
 
+  const DEFAULT_REMOTE_CONFIG = {
+    baseUrl: '',
+    userId: '',
+    userSecret: '',
+    authMode: 'bearer',
+  };
+
   const state = {
+    operationMode: 'choose',
+    remoteTab: 'bulk',
+    remoteConfig: { ...DEFAULT_REMOTE_CONFIG },
+    remoteChannels: [],
+    remoteChannelsLoaded: false,
+    remoteChannelsBusy: false,
     open: false,
     running: false,
     nameSeedKey: '',
@@ -479,6 +493,48 @@
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
   }
 
+  function normalizeOperationMode(value) {
+    return value === 'local' || value === 'remote' ? value : 'choose';
+  }
+
+  function normalizeRemoteTab(value) {
+    return value === 'channels' ? 'channels' : 'bulk';
+  }
+
+  function normalizeRemoteBaseUrl(value) {
+    const text = String(value || '').trim().replace(/\/+$/u, '');
+    if (!text) return '';
+    if (/^https?:\/\//iu.test(text)) return text;
+    return `https://${text}`;
+  }
+
+  function normalizeRemoteConfig(value = {}) {
+    const config = { ...DEFAULT_REMOTE_CONFIG, ...(value && typeof value === 'object' ? value : {}) };
+    const authMode = ['bearer', 'new-api-key', 'both'].includes(config.authMode) ? config.authMode : DEFAULT_REMOTE_CONFIG.authMode;
+    return {
+      baseUrl: normalizeRemoteBaseUrl(config.baseUrl),
+      userId: normalizeUserId(config.userId),
+      userSecret: String(config.userSecret || '').trim(),
+      authMode,
+    };
+  }
+
+  function loadRemoteConfig() {
+    try {
+      const raw = localStorage.getItem(REMOTE_CONFIG_STORAGE_KEY);
+      return raw ? normalizeRemoteConfig(JSON.parse(raw)) : { ...DEFAULT_REMOTE_CONFIG };
+    } catch {
+      return { ...DEFAULT_REMOTE_CONFIG };
+    }
+  }
+
+  function saveRemoteConfig(config = state.remoteConfig) {
+    const normalized = normalizeRemoteConfig(config);
+    state.remoteConfig = normalized;
+    localStorage.setItem(REMOTE_CONFIG_STORAGE_KEY, JSON.stringify(normalized));
+    return normalized;
+  }
+
   function jobForStorage(job) {
     if (!job) return null;
     const { keys, ...rest } = job;
@@ -490,11 +546,19 @@
     const keyPool = Array.isArray(data.keyPool) ? data.keyPool : [];
     const activeJob = data.activeJob && typeof data.activeJob === 'object' ? data.activeJob : null;
     const workLogs = Array.isArray(data.workLogs) ? data.workLogs : [];
-    return { keyPool, activeJob, workLogs };
+    return {
+      operationMode: normalizeOperationMode(data.operationMode),
+      remoteTab: normalizeRemoteTab(data.remoteTab),
+      keyPool,
+      activeJob,
+      workLogs,
+    };
   }
 
   function applyWorkspacePayload(payload, options = {}) {
     const normalized = normalizeWorkspacePayload(payload);
+    state.operationMode = normalized.operationMode;
+    state.remoteTab = normalized.remoteTab;
     state.keyPool = normalized.keyPool.map((entry, index) => ({
       key: String(entry.key || ''),
       keyPreview: entry.keyPreview || keyPreview(entry.key || ''),
@@ -545,6 +609,8 @@
       version: SCRIPT_VERSION,
       tool: TOOL_MARK,
       exportedAt: nowIso(),
+      operationMode: state.operationMode,
+      remoteTab: state.remoteTab,
       site: currentSiteInfo(),
       keyPool: state.keyPool,
       activeJob: jobForStorage(state.activeJob),

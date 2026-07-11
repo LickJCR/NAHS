@@ -621,6 +621,35 @@
     return `${root}${suffix}`;
   }
 
+  function validateRemoteConfig(config = state.remoteConfig) {
+    const remoteConfig = normalizeRemoteConfig(config);
+    if (!remoteConfig.baseUrl) throw new Error('请先填写远端 NewAPI 地址。');
+    if (!/^https?:\/\//iu.test(remoteConfig.baseUrl)) throw new Error('远端 NewAPI 地址必须包含 http:// 或 https://。');
+    if (!remoteConfig.userId) throw new Error('请先填写远端 User ID。');
+    if (!remoteConfig.userSecret) throw new Error('请先填写远端 User 密钥。');
+    return remoteConfig;
+  }
+
+  function remoteApiUrl(url) {
+    const remoteConfig = validateRemoteConfig();
+    if (/^https?:\/\//iu.test(url)) return url;
+    const path = String(url || '').startsWith('/') ? String(url) : `/${url}`;
+    return `${remoteConfig.baseUrl}${path}`;
+  }
+
+  function remoteAuthHeaders(remoteConfig) {
+    const headers = {
+      'New-Api-User': remoteConfig.userId,
+    };
+    if (remoteConfig.authMode === 'bearer' || remoteConfig.authMode === 'both') {
+      headers.Authorization = `Bearer ${remoteConfig.userSecret}`;
+    }
+    if (remoteConfig.authMode === 'new-api-key' || remoteConfig.authMode === 'both') {
+      headers['New-Api-Key'] = remoteConfig.userSecret;
+    }
+    return headers;
+  }
+
   function normalizeUserId(value) {
     const text = String(value ?? '').trim();
     if (!text || text === 'null' || text === 'undefined') return '';
@@ -649,7 +678,70 @@
     }
   }
 
+  function parseApiResponseText(text, fallbackMessage = '') {
+    try {
+      return text ? JSON.parse(text) : null;
+    } catch {
+      return { success: false, message: text || fallbackMessage };
+    }
+  }
+
+  function remoteApiRequest(url, options = {}) {
+    const remoteConfig = validateRemoteConfig();
+    const headers = {
+      Accept: 'application/json',
+      'Cache-Control': 'no-store',
+      ...remoteAuthHeaders(remoteConfig),
+      ...options.headers,
+    };
+    if (options.body !== undefined) {
+      headers['Content-Type'] = 'application/json';
+    }
+    const method = String(options.method || 'GET').toUpperCase();
+    const targetUrl = remoteApiUrl(url);
+
+    if (typeof GM_xmlhttpRequest === 'function') {
+      return new Promise((resolve, reject) => {
+        GM_xmlhttpRequest({
+          method,
+          url: targetUrl,
+          headers,
+          data: options.body,
+          responseType: 'text',
+          onload: (response) => {
+            const data = parseApiResponseText(response.responseText, response.statusText);
+            if (response.status < 200 || response.status >= 300) {
+              reject(new Error(data?.message || `${response.status} ${response.statusText}`));
+              return;
+            }
+            resolve(data);
+          },
+          onerror: () => reject(new Error('远端请求失败，请检查地址、跨域权限或网络。')),
+          ontimeout: () => reject(new Error('远端请求超时。')),
+        });
+      });
+    }
+
+    return fetch(targetUrl, {
+      ...options,
+      method,
+      headers,
+      credentials: 'omit',
+    }).then(async (response) => {
+      const text = await response.text();
+      const data = parseApiResponseText(text, response.statusText);
+      if (!response.ok) {
+        throw new Error(data?.message || `${response.status} ${response.statusText}`);
+      }
+      return data;
+    });
+  }
+
   async function apiRequest(url, options = {}) {
+    if (state.operationMode === 'remote') {
+      return remoteApiRequest(url, options);
+    }
+
     const uid = getUserId();
     const headers = {
       Accept: 'application/json',
@@ -669,12 +761,7 @@
       headers,
     });
     const text = await response.text();
-    let data = null;
-    try {
-      data = text ? JSON.parse(text) : null;
-    } catch {
-      data = { success: false, message: text || response.statusText };
-    }
+    const data = parseApiResponseText(text, response.statusText);
     if (!response.ok) {
       const message = data?.message || `${response.status} ${response.statusText}`;
       throw new Error(message);
@@ -1432,11 +1519,13 @@
         if (!ok) return;
         applyWorkspacePayload(payload, { keepMonitor: false });
         persistWorkspaceState();
+        updateModeUi();
+        updateSiteInfo();
         renderWorkLog();
         updateJobStats();
         updateJobControls();
         appendLog(`已导入工作记录：${file.name}`);
-        if (state.activeJob && !state.activeJob.stopped && !state.activeJob.paused) {
+        if (state.operationMode !== 'choose' && state.activeJob && !state.activeJob.stopped && !state.activeJob.paused) {
           startMonitorLoop();
         }
       } catch (err) {
@@ -1470,12 +1559,16 @@
     state.nameTimestamp = '';
     state.nameDate = '';
     state.randomCodes = new Map();
+    state.remoteChannels = [];
+    state.remoteChannelsLoaded = false;
+    state.remoteChannelsBusy = false;
     localStorage.removeItem(WORKSPACE_STORAGE_KEY);
     resetFormToDefaults();
     const keyInput = qs('#nai-keys');
     if (keyInput) keyInput.value = '';
     setParamsPaneOpen(false);
     renderWorkLog();
+    updateModeUi();
     refreshPreview();
     updateJobStats();
     updateJobControls();
@@ -1507,6 +1600,55 @@
     const url = qs('#nai-siteUrl');
     if (name) name.textContent = site.name;
     if (url) url.textContent = site.url;
+  }
+
+  function localStorageHasNewApiUser() {
+    try {
+      if (normalizeUserId(localStorage.getItem('uid'))) return true;
+      const rawUser = localStorage.getItem('user');
+      if (!rawUser) return false;
+      const user = JSON.parse(rawUser);
+      return Boolean(
+        normalizeUserId(user?.id) ||
+        normalizeUserId(user?.user?.id) ||
+        normalizeUserId(user?.data?.id)
+      );
+    } catch {
+      return false;
+    }
+  }
+
+  function isLikelyNewApiPage() {
+    const path = `${location.pathname}${location.search}`.toLowerCase();
+    const host = location.hostname.toLowerCase();
+    const title = String(document.title || '').toLowerCase();
+    const metaText = qsa('meta[name], meta[property]')
+      .map((meta) => `${meta.getAttribute('name') || ''} ${meta.getAttribute('property') || ''} ${meta.getAttribute('content') || ''}`)
+      .join(' ')
+      .toLowerCase();
+    const bodyText = String(document.body?.innerText || '').slice(0, 8000).toLowerCase();
+    const linkValues = qsa('a[href], form[action]').map((el) => (
+      String(el.getAttribute('href') || el.getAttribute('action') || '').toLowerCase()
+    ));
+    const channelLinkSignal = linkValues.some((value) => (
+      /(^|\/)(channels?|api\/channel)(\/|$|\?)/u.test(value)
+    ));
+    const adminLinkSignal = linkValues.some((value) => (
+      /(^|\/)(token|redemption|models?)(\/|$|\?)/u.test(value)
+    ));
+    const apiTextSignal = qsa('script, link').some((el) => {
+      const value = String(el.getAttribute('href') || el.getAttribute('src') || '').toLowerCase();
+      return /new[\s-]*api|newapi/u.test(value);
+    });
+    let score = 0;
+    if (/new[\s-]*api|newapi/u.test(`${host} ${title} ${metaText}`)) score += 3;
+    if (/(^|\/)(channels?|api\/channel)(\/|$|\?)/u.test(path)) score += 2;
+    if (channelLinkSignal) score += 2;
+    if (adminLinkSignal) score += 1;
+    if (apiTextSignal) score += 1;
+    if (localStorageHasNewApiUser()) score += 1;
+    if (/渠道|令牌|api key|模型倍率|分组/u.test(bodyText)) score += 1;
+    return score >= 2;
   }
 
   function updateBaseUrlDisplay() {
@@ -1577,6 +1719,41 @@
       appendLog(`刷新样板渠道失败：${err.message}`, 'error');
     } finally {
       if (select) select.disabled = false;
+    }
+  }
+
+  async function loadRemoteChannels() {
+    if (state.operationMode !== 'remote') return;
+    if (state.remoteChannelsBusy) return;
+    state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
+    try {
+      validateRemoteConfig(state.remoteConfig);
+    } catch (err) {
+      appendLog(`远端配置不可用：${err.message}`, 'error');
+      return;
+    }
+
+    state.remoteChannelsBusy = true;
+    renderRemoteChannels();
+    const params = new URLSearchParams({
+      p: '1',
+      page_size: String(TEMPLATE_PAGE_SIZE),
+      id_sort: 'true',
+    });
+
+    try {
+      const result = await apiRequest(apiUrl(collectConfig(false), `?${params.toString()}`));
+      if (!result?.success) throw new Error(result?.message || '读取失败');
+      state.remoteChannels = channelsFromListResult(result);
+      state.remoteChannelsLoaded = true;
+      appendLog(`已读取远端渠道列表，共 ${state.remoteChannels.length} 个。`);
+    } catch (err) {
+      state.remoteChannels = [];
+      state.remoteChannelsLoaded = true;
+      appendLog(`读取远端渠道列表失败：${err.message}`, 'error');
+    } finally {
+      state.remoteChannelsBusy = false;
+      renderRemoteChannels();
     }
   }
 
@@ -1737,6 +1914,9 @@
       '[data-nai-refresh-site]',
       '[data-nai-refresh-groups]',
       '[data-nai-refresh-base-url]',
+      '[data-nai-save-remote-config]',
+      '[data-nai-test-remote]',
+      '[data-nai-refresh-remote-channels]',
       '[data-nai-add-keys]',
       '[data-nai-import-work]',
       '[data-nai-reset-work]',
@@ -1799,6 +1979,7 @@
   }
 
   function refreshHostChannelList() {
+    if (state.operationMode === 'remote') return 'remote';
     const detail = { source: SCRIPT_ID, at: Date.now() };
     window.dispatchEvent(new CustomEvent('newapi:channels-created', { detail }));
     document.dispatchEvent(new CustomEvent('newapi:channels-created', { detail }));
@@ -1826,9 +2007,21 @@
       return;
     }
 
-    if (selected.length > 0 && !getUserId()) {
-      appendLog('未读取到登录用户 ID。新版需 localStorage.uid，v0.13.2 需 localStorage.user.id；请确认已登录并刷新页面。', 'error');
-      return;
+    if (state.operationMode === 'remote') {
+      try {
+        state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
+        validateRemoteConfig(state.remoteConfig);
+      } catch (err) {
+        appendLog(`远端配置不可用：${err.message}`, 'error');
+        return;
+      }
+    }
+
+    if (selected.length > 0 && state.operationMode !== 'remote') {
+      if (!getUserId()) {
+        appendLog('未读取到登录用户 ID。新版需 localStorage.uid，v0.13.2 需 localStorage.user.id；请确认已登录并刷新页面。', 'error');
+        return;
+      }
     }
 
     const jobName = resolveJobName(config);

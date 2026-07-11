@@ -253,6 +253,13 @@
   }
 
   function currentSiteInfo() {
+    if (state.operationMode === 'remote') {
+      const url = normalizeRemoteBaseUrl(state.remoteConfig.baseUrl);
+      return {
+        name: url ? '远端 NewAPI' : '远端 NewAPI 未配置',
+        url: url || '未填写地址',
+      };
+    }
     const title = String(document.title || '').replace(/\s+/g, ' ').trim();
     return {
       name: title || location.hostname,
@@ -283,21 +290,35 @@
     ].join('');
   }
 
+  function renderRemoteAuthModeOptions(selected = DEFAULT_REMOTE_CONFIG.authMode) {
+    const options = [
+      ['bearer', 'Authorization: Bearer'],
+      ['new-api-key', 'New-Api-Key'],
+      ['both', '同时发送'],
+    ];
+    return options.map(([value, label]) => {
+      const isSelected = value === selected ? ' selected' : '';
+      return `<option value="${escapeHtml(value)}"${isSelected}>${escapeHtml(label)}</option>`;
+    }).join('');
+  }
+
   function panelHtml(config) {
     const site = currentSiteInfo();
     const defaultBaseUrl = defaultBaseUrlForType(config.typePreset);
+    const remoteConfig = state.remoteConfig;
     return `
       <div class="nai-bulk-header">
         <div class="nai-bulk-title">
-          <strong class="nai-bulk-title-line">NewAPI 批量添加渠道</strong>
+          <strong class="nai-bulk-title-line">NewAPI Helper Suite</strong>
           <span class="nai-bulk-header-separator"></span>
           ${versionBadgeHtml()}
           <span class="nai-bulk-header-separator"></span>
-          <span>直接调用 /api/channel，兼容 v0.13.2 和 v1.x 登录态。</span>
+          <span id="nai-modeLabel">选择工作模式</span>
           <span class="nai-bulk-header-separator"></span>
           <span class="nai-bulk-title-site">当前站点：<strong id="nai-siteName">${escapeHtml(site.name)}</strong> · <strong id="nai-siteUrl">${escapeHtml(site.url)}</strong></span>
         </div>
         <div class="nai-bulk-header-actions">
+          <button type="button" class="nai-bulk-small-button" data-nai-change-mode>切换模式</button>
           <button type="button" class="nai-bulk-small-button" data-nai-refresh-site>刷新站点</button>
           <button type="button" class="nai-bulk-small-button" data-nai-import-work>导入工作</button>
           <button type="button" class="nai-bulk-small-button" data-nai-export-work>导出工作</button>
@@ -306,7 +327,52 @@
           <input class="nai-bulk-hidden-file" type="file" accept="application/json,.json" data-nai-import-work-file>
         </div>
       </div>
+      <div class="nai-mode-chooser" data-nai-mode-chooser>
+        <button type="button" class="nai-mode-card" data-nai-mode-choice="local">
+          <span class="nai-mode-card-icon" aria-hidden="true">●</span>
+          <span class="nai-mode-card-title">当前浏览器渠道 key 批量添加</span>
+          <span class="nai-mode-card-desc">使用当前 NewAPI 页面登录态和本地数据。</span>
+        </button>
+        <button type="button" class="nai-mode-card" data-nai-mode-choice="remote">
+          <span class="nai-mode-card-icon" aria-hidden="true">↗</span>
+          <span class="nai-mode-card-title">远端 NewAPI 管理</span>
+          <span class="nai-mode-card-desc">填写 NewAPI 地址、用户 ID 和用户密钥后通过 API 管理。</span>
+        </button>
+      </div>
       <div class="nai-bulk-body">
+        <section class="nai-remote-only nai-remote-config-panel">
+          <div class="nai-pane-title">
+            <span>远端连接</span>
+            <small>远端密钥保存在当前站点浏览器 localStorage。</small>
+          </div>
+          <div class="nai-remote-config-grid">
+            <div class="nai-bulk-field">
+              <label for="nai-remoteBaseUrl">NewAPI 地址</label>
+              <input id="nai-remoteBaseUrl" data-nai-remote-field="baseUrl" placeholder="https://newapi.example.com" value="${escapeHtml(remoteConfig.baseUrl)}">
+            </div>
+            <div class="nai-bulk-field">
+              <label for="nai-remoteUserId">User ID</label>
+              <input id="nai-remoteUserId" data-nai-remote-field="userId" inputmode="numeric" value="${escapeHtml(remoteConfig.userId)}">
+            </div>
+            <div class="nai-bulk-field">
+              <label for="nai-remoteUserSecret">User 密钥</label>
+              <input id="nai-remoteUserSecret" data-nai-remote-field="userSecret" data-nai-sensitive type="password" value="${escapeHtml(remoteConfig.userSecret)}">
+            </div>
+            <div class="nai-bulk-field">
+              <label for="nai-remoteAuthMode">密钥发送方式</label>
+              <select id="nai-remoteAuthMode" data-nai-remote-field="authMode">${renderRemoteAuthModeOptions(remoteConfig.authMode)}</select>
+            </div>
+            <div class="nai-remote-config-actions">
+              <button type="button" class="nai-bulk-small-button" data-nai-save-remote-config>保存连接</button>
+              <button type="button" class="nai-bulk-small-button" data-nai-test-remote>测试连接</button>
+            </div>
+          </div>
+        </section>
+        <div class="nai-remote-only nai-remote-tabs" data-nai-remote-tabs>
+          <button type="button" class="nai-remote-tab" data-nai-remote-tab="bulk" data-active="true">批量添加</button>
+          <button type="button" class="nai-remote-tab" data-nai-remote-tab="channels" data-active="false">远端渠道列表</button>
+        </div>
+        <div class="nai-remote-panel" data-nai-remote-panel="bulk">
         <div class="nai-workbench">
           <aside class="nai-pane nai-pane-left">
             <section class="nai-pane-half nai-left-input">
@@ -638,6 +704,15 @@
             </div>
           </aside>
         </div>
+        </div>
+        <div class="nai-remote-panel nai-remote-channel-panel" data-nai-remote-panel="channels">
+          <div class="nai-pane-title">
+            <span>远端渠道列表</span>
+            <button type="button" class="nai-bulk-small-button" data-nai-refresh-remote-channels>刷新渠道列表</button>
+          </div>
+          <div id="nai-remoteChannelStatus" class="nai-remote-channel-status">尚未读取远端渠道。</div>
+          <div id="nai-remoteChannels" class="nai-remote-channel-list"></div>
+        </div>
       </div>
     `;
   }
@@ -663,6 +738,7 @@
     if (document.getElementById(SCRIPT_ID)) return;
     injectStyles();
     captureHostTypeIcons();
+    state.remoteConfig = loadRemoteConfig();
     restoreWorkspaceState();
 
     const config = loadConfig();
@@ -688,6 +764,8 @@
     panel.id = SCRIPT_ID;
     panel.className = 'nai-bulk-panel';
     panel.setAttribute('data-open', 'false');
+    panel.setAttribute('data-nai-mode', state.operationMode);
+    panel.setAttribute('data-nai-remote-tab', state.remoteTab);
     panel.setAttribute('data-nai-right-open', String(Boolean(state.activeJob)));
     panel.innerHTML = panelHtml(config);
 
@@ -695,14 +773,17 @@
     restoreButtonPosition(button);
     bindPanel(panel);
     setupTypePicker(panel);
+    updateModeUi();
     updateBaseUrlDisplay();
     refreshPreview();
     renderWorkLog();
     updateJobStats();
     updateJobControls();
-    loadGroups();
-    loadTemplates();
-    if (state.activeJob && !state.activeJob.stopped && !state.activeJob.paused) {
+    if (state.operationMode !== 'choose') {
+      loadGroups();
+      loadTemplates();
+    }
+    if (state.operationMode !== 'choose' && state.activeJob && !state.activeJob.stopped && !state.activeJob.paused) {
       startMonitorLoop();
     }
   }
@@ -718,6 +799,10 @@
     qs('[data-nai-export-job]', panel).addEventListener('click', exportActiveJob);
     qs('[data-nai-load-template]', panel).addEventListener('click', loadSelectedTemplate);
     qs('[data-nai-refresh-templates]', panel).addEventListener('click', loadTemplates);
+    qs('[data-nai-change-mode]', panel).addEventListener('click', () => setOperationMode('choose'));
+    qs('[data-nai-save-remote-config]', panel).addEventListener('click', saveRemoteConfigFromForm);
+    qs('[data-nai-test-remote]', panel).addEventListener('click', testRemoteConnection);
+    qs('[data-nai-refresh-remote-channels]', panel).addEventListener('click', loadRemoteChannels);
     qs('[data-nai-refresh-site]', panel).addEventListener('click', () => {
       updateSiteInfo();
       appendLog('已刷新站点信息。');
@@ -753,6 +838,16 @@
       const keyTab = event.target.closest('[data-nai-key-tab]');
       if (keyTab) {
         setKeyTab(keyTab.getAttribute('data-nai-key-tab') || 'list');
+        return;
+      }
+      const modeChoice = event.target.closest('[data-nai-mode-choice]');
+      if (modeChoice) {
+        setOperationMode(modeChoice.getAttribute('data-nai-mode-choice') || 'choose');
+        return;
+      }
+      const remoteTab = event.target.closest('[data-nai-remote-tab]');
+      if (remoteTab) {
+        setRemoteTab(remoteTab.getAttribute('data-nai-remote-tab') || 'bulk');
         return;
       }
       const jobTab = event.target.closest('[data-nai-job-tab]');
@@ -838,6 +933,11 @@
       refreshPreview();
     });
 
+    qsa('[data-nai-remote-field]', panel).forEach((el) => {
+      el.addEventListener('input', updateRemoteConfigPreview);
+      el.addEventListener('change', updateRemoteConfigPreview);
+    });
+
     panel.addEventListener('keydown', (event) => {
       if (event.key === 'Escape') setGroupPickerOpen(false);
     });
@@ -847,6 +947,157 @@
       if (picker?.contains(event.target)) return;
       setGroupPickerOpen(false);
     });
+  }
+
+  function remoteConfigFromFields(panel = document.getElementById(SCRIPT_ID)) {
+    const config = { ...state.remoteConfig };
+    qsa('[data-nai-remote-field]', panel).forEach((el) => {
+      const key = el.getAttribute('data-nai-remote-field');
+      if (!key) return;
+      config[key] = el.value;
+    });
+    return normalizeRemoteConfig(config);
+  }
+
+  function syncRemoteConfigFields() {
+    const panel = document.getElementById(SCRIPT_ID);
+    if (!panel) return;
+    const config = state.remoteConfig;
+    qsa('[data-nai-remote-field]', panel).forEach((el) => {
+      const key = el.getAttribute('data-nai-remote-field');
+      if (!key || config[key] === undefined) return;
+      el.value = config[key];
+    });
+  }
+
+  function updateRemoteConfigPreview() {
+    state.remoteConfig = remoteConfigFromFields();
+    updateSiteInfo();
+  }
+
+  function setOperationMode(mode) {
+    const nextMode = normalizeOperationMode(mode);
+    state.operationMode = nextMode;
+    if (nextMode === 'local') state.remoteTab = 'bulk';
+    if (nextMode === 'remote') state.remoteConfig = remoteConfigFromFields();
+    persistWorkspaceState();
+    updateModeUi();
+    updateSiteInfo();
+    refreshPreview();
+
+    if (nextMode === 'choose') {
+      appendLog('已回到工作模式选择。');
+      return;
+    }
+
+    if (nextMode === 'remote') {
+      saveRemoteConfig(state.remoteConfig);
+      appendLog('已切换到远端 NewAPI 模式。');
+      try {
+        validateRemoteConfig(state.remoteConfig);
+      } catch {
+        return;
+      }
+    } else {
+      appendLog('已切换到当前浏览器站点模式。');
+    }
+    loadGroups();
+    loadTemplates();
+  }
+
+  function setRemoteTab(tab) {
+    state.remoteTab = normalizeRemoteTab(tab);
+    persistWorkspaceState();
+    updateModeUi();
+    if (state.operationMode === 'remote' && state.remoteTab === 'channels' && !state.remoteChannelsLoaded) {
+      loadRemoteChannels();
+    }
+  }
+
+  function modeLabelText() {
+    if (state.operationMode === 'local') return '当前浏览器站点模式';
+    if (state.operationMode === 'remote') return '远端 NewAPI 模式';
+    return '选择工作模式';
+  }
+
+  function updateModeUi() {
+    const panel = document.getElementById(SCRIPT_ID);
+    if (!panel) return;
+    panel.setAttribute('data-nai-mode', state.operationMode);
+    panel.setAttribute('data-nai-remote-tab', state.remoteTab);
+    const label = qs('#nai-modeLabel', panel);
+    if (label) label.textContent = modeLabelText();
+    qsa('[data-nai-remote-tab]', panel).forEach((button) => {
+      button.setAttribute('data-active', String(button.getAttribute('data-nai-remote-tab') === state.remoteTab));
+    });
+    syncRemoteConfigFields();
+    renderRemoteChannels();
+  }
+
+  function saveRemoteConfigFromForm() {
+    state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
+    updateModeUi();
+    updateSiteInfo();
+    appendLog('远端连接配置已保存。');
+  }
+
+  async function testRemoteConnection() {
+    try {
+      state.remoteConfig = saveRemoteConfig(remoteConfigFromFields());
+      validateRemoteConfig(state.remoteConfig);
+      const result = await apiRequest(GROUPS_API);
+      if (!result?.success) throw new Error(result?.message || '连接失败');
+      const groups = normalizeGroupsResult(result);
+      updateGroupOptions(groups);
+      updateModeUi();
+      appendLog(`远端连接成功，读取到 ${groups.length} 个分组。`);
+    } catch (err) {
+      appendLog(`远端连接失败：${err.message}`, 'error');
+    }
+  }
+
+  function channelTypeName(type) {
+    const item = CHANNEL_TYPES.find(([value]) => Number(value) === Number(type));
+    return item ? item[1] : `Type ${type || '-'}`;
+  }
+
+  function renderRemoteChannels() {
+    const host = qs('#nai-remoteChannels');
+    const status = qs('#nai-remoteChannelStatus');
+    if (!host) return;
+    if (status) {
+      if (state.remoteChannelsBusy) {
+        status.textContent = '正在读取远端渠道...';
+      } else if (state.remoteChannelsLoaded) {
+        status.textContent = `已读取 ${state.remoteChannels.length} 个远端渠道。`;
+      } else {
+        status.textContent = '尚未读取远端渠道。';
+      }
+    }
+
+    if (!state.remoteChannels.length) {
+      host.innerHTML = '<div class="nai-empty-state">暂无渠道数据。</div>';
+      return;
+    }
+
+    host.innerHTML = `
+      <div class="nai-remote-channel-table">
+        <div class="nai-remote-channel-head">ID</div>
+        <div class="nai-remote-channel-head">名称</div>
+        <div class="nai-remote-channel-head">类型</div>
+        <div class="nai-remote-channel-head">分组</div>
+        <div class="nai-remote-channel-head">状态</div>
+        <div class="nai-remote-channel-head">已用额度</div>
+        ${state.remoteChannels.map((channel) => `
+          <div class="nai-remote-channel-cell">#${escapeHtml(channel.id ?? '-')}</div>
+          <div class="nai-remote-channel-cell nai-remote-channel-name">${escapeHtml(channel.name || '(未命名)')}</div>
+          <div class="nai-remote-channel-cell">${escapeHtml(channelTypeName(channel.type))}</div>
+          <div class="nai-remote-channel-cell">${escapeHtml(channel.group || '-')}</div>
+          <div class="nai-remote-channel-cell">${escapeHtml(statusLabel(channel.status))}</div>
+          <div class="nai-remote-channel-cell">${escapeHtml(numericQuota(channel))}</div>
+        `).join('')}
+      </div>
+    `;
   }
 
   function setParamsPaneOpen(open) {

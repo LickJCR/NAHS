@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.7.4
+// @version      0.7.5
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
 // @author       LickJCR
 // @license      MIT
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.7.4';
+  const SCRIPT_VERSION = '0.7.5';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
@@ -1198,7 +1198,7 @@
       .nai-bulk-panel[data-nai-mode="local"] .nai-mode-chooser,
       .nai-bulk-panel[data-nai-mode="remote"] .nai-mode-chooser,
       .nai-bulk-panel[data-nai-mode="local"] .nai-remote-only,
-      .nai-bulk-panel[data-nai-mode="local"] .nai-remote-panel {
+      .nai-bulk-panel[data-nai-mode="local"] .nai-remote-list-panel {
         display: none;
       }
 

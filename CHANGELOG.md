@@ -4,6 +4,10 @@
 
 - No unreleased changes.
 
+## 0.7.5
+
+- Fix current-browser mode hiding the bulk-add three-column workbench after selecting the local mode card.
+
 ## 0.7.4
 
 - Fetch remote channel details after loading the channel list so channel table columns show type, status, models, groups, quota, and test data when the NewAPI list endpoint only returns summaries.

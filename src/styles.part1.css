@@ -221,7 +221,7 @@
       .nai-bulk-panel[data-nai-mode="local"] .nai-mode-chooser,
       .nai-bulk-panel[data-nai-mode="remote"] .nai-mode-chooser,
       .nai-bulk-panel[data-nai-mode="local"] .nai-remote-only,
-      .nai-bulk-panel[data-nai-mode="local"] .nai-remote-panel {
+      .nai-bulk-panel[data-nai-mode="local"] .nai-remote-list-panel {
         display: none;
       }
 

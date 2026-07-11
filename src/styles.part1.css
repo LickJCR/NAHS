@@ -612,6 +612,15 @@
         white-space: nowrap;
       }
 
+      .nai-remote-wrap-cell,
+      .nai-remote-wrap-cell .nai-remote-stack > span,
+      .nai-remote-wrap-cell .nai-remote-stack small {
+        overflow: visible;
+        text-overflow: clip;
+        white-space: normal;
+        overflow-wrap: anywhere;
+      }
+
       .nai-remote-stack {
         min-width: 0;
         display: flex;

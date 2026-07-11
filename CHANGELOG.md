@@ -4,6 +4,11 @@
 
 - No unreleased changes.
 
+## 0.7.3
+
+- Prevent remote channel, log, and user list long fields from being clipped by single-line table cells.
+- Add normalized field-name fallback for remote log and user rows returned by different NewAPI versions.
+
 ## 0.7.2
 
 - Fix remote channel list rendering so all NewAPI columns remain visible in a horizontal table.

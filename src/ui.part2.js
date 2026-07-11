@@ -623,6 +623,14 @@
     for (const key of keys) {
       if (row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
     }
+    const normalized = new Map(Object.keys(row).map((key) => [
+      String(key).replace(/[_\-\s]/g, '').toLowerCase(),
+      key,
+    ]));
+    for (const key of keys) {
+      const match = normalized.get(String(key).replace(/[_\-\s]/g, '').toLowerCase());
+      if (match && row[match] !== undefined && row[match] !== null && row[match] !== '') return row[match];
+    }
     return undefined;
   }
 
@@ -765,8 +773,8 @@
   }
 
   function userStatusBadge(user) {
-    if (user.DeletedAt) return remoteBadge('已注销', 'destructive');
-    const status = Number(user.status);
+    if (remoteValue(user, 'DeletedAt', 'deleted_at')) return remoteBadge('已注销', 'destructive');
+    const status = Number(remoteValue(user, 'status'));
     if (status === 1) return remoteBadge('已启用', 'success');
     if (status === 2) return remoteBadge('已禁用', 'neutral');
     return remoteBadge(status || '未知', 'neutral');
@@ -816,7 +824,7 @@
     );
     const rows = resource.items.map((channel) => [
       remoteCell(remoteValue(channel, 'id', 'Id', 'ID') ?? '-'),
-      remoteHtmlCell(remoteStack(remoteValue(channel, 'name', 'Name') || '(未命名)', remoteValue(channel, 'remark', 'Remark') || ''), 'nai-remote-channel-name'),
+      remoteHtmlCell(remoteStack(remoteValue(channel, 'name', 'Name') || '(未命名)', remoteValue(channel, 'remark', 'Remark') || ''), 'nai-remote-wrap-cell'),
       remoteHtmlCell(remoteBadge(channelTypeName(remoteValue(channel, 'type', 'Type')))),
       remoteHtmlCell(channelStatusBadge(channel)),
       remoteHtmlCell(remoteBadgeList(remoteValue(channel, 'models', 'Models'))),
@@ -848,23 +856,29 @@
       (count, at) => `已读取 ${count} 条日志${at ? `，更新时间 ${shortDateTime(at)}` : ''}。`,
       '尚未读取远端日志。'
     );
-    const rows = resource.items.map((log) => [
-      remoteHtmlCell(remoteStackHtml(shortDateTime(log.created_at ?? log.created_time ?? log.createdTime ?? log.time), logTypeBadge(log.type))),
-      remoteHtmlCell(remoteStack(log.channel ? `#${log.channel}` : '-', log.channel_name || '')),
-      remoteHtmlCell(remoteStack(log.username || '-', log.user_id ? `ID: ${log.user_id}` : '')),
-      remoteHtmlCell(remoteStack(log.token_name || '-', log.group || '')),
-      remoteHtmlCell(remoteBadge(log.model_name || '-')),
-      remoteHtmlCell(remoteStack(formatUseSeconds(log.use_time), log.is_stream ? 'Stream' : (log.use_time ? 'Non-stream' : ''))),
-      remoteHtmlCell(remoteStack(`${formatRemoteQuota(log.prompt_tokens || 0)} / ${formatRemoteQuota(log.completion_tokens || 0)}`, '')),
-      remoteCell(formatRemoteQuota(firstNonEmpty(log.quota, log.use_quota, log.used_quota, log.usedQuota, log.cost))),
-      remoteHtmlCell(remoteStack(log.content || '-', log.request_id || log.upstream_request_id || ''), 'nai-remote-channel-name'),
-    ].join(''));
+    const rows = resource.items.map((log) => {
+      const useTime = remoteValue(log, 'use_time', 'useTime');
+      const channelId = remoteValue(log, 'channel', 'channel_id', 'channelId');
+      const requestId = firstNonEmpty(remoteValue(log, 'request_id', 'requestId'), remoteValue(log, 'upstream_request_id', 'upstreamRequestId'));
+      return [
+        remoteHtmlCell(remoteStackHtml(shortDateTime(remoteValue(log, 'created_at', 'created_time', 'createdTime', 'time')), logTypeBadge(remoteValue(log, 'type')))),
+        remoteHtmlCell(remoteStack(channelId ? `#${channelId}` : '-', remoteValue(log, 'channel_name', 'channelName') || '')),
+        remoteHtmlCell(remoteStack(remoteValue(log, 'username') || '-', remoteValue(log, 'user_id', 'userId') ? `ID: ${remoteValue(log, 'user_id', 'userId')}` : '')),
+        remoteHtmlCell(remoteStack(remoteValue(log, 'token_name', 'tokenName') || '-', remoteValue(log, 'group') || '')),
+        remoteHtmlCell(remoteBadge(remoteValue(log, 'model_name', 'modelName', 'model') || '-')),
+        remoteHtmlCell(remoteStack(formatUseSeconds(useTime), remoteValue(log, 'is_stream', 'isStream') ? 'Stream' : (useTime ? 'Non-stream' : ''))),
+        remoteHtmlCell(remoteStack(`${formatRemoteQuota(remoteValue(log, 'prompt_tokens', 'promptTokens') || 0)} / ${formatRemoteQuota(remoteValue(log, 'completion_tokens', 'completionTokens') || 0)}`, '')),
+        remoteCell(formatRemoteQuota(firstNonEmpty(remoteValue(log, 'quota'), remoteValue(log, 'use_quota', 'useQuota'), remoteValue(log, 'used_quota', 'usedQuota'), remoteValue(log, 'cost')))),
+        remoteHtmlCell(remoteStack(firstNonEmpty(remoteValue(log, 'content'), remoteValue(log, 'detail'), remoteValue(log, 'details'), remoteValue(log, 'message')) || '-', requestId || ''), 'nai-remote-wrap-cell'),
+      ].join('');
+    });
     renderRemoteTable(
       qs('#nai-remoteLogs'),
       '暂无日志数据。',
       ['时间', '渠道', '用户', '令牌', '模型', '耗时', 'Token', '费用', '详情'],
       rows,
-      '180px 160px 140px 160px 180px 130px 130px 110px minmax(260px, 1.4fr)'
+      '170px 150px 150px 160px 170px 120px 130px 110px minmax(460px, 1fr)',
+      '1620px'
     );
   }
 
@@ -877,24 +891,30 @@
       (count, at) => `已读取 ${count} 个用户${at ? `，更新时间 ${shortDateTime(at)}` : ''}。`,
       '尚未读取远端用户。'
     );
-    const rows = resource.items.map((user) => [
-      remoteCell(user.id ?? user.uid ?? '-'),
-      remoteHtmlCell(remoteStack(firstNonEmpty(user.username, user.name, user.email), user.display_name && user.display_name !== user.username ? user.display_name : user.remark || ''), 'nai-remote-channel-name'),
-      remoteHtmlCell(`${userStatusBadge(user)}<div class="nai-remote-cell-note">请求: ${escapeHtml(formatRemoteQuota(user.request_count || 0))}</div>`),
-      remoteHtmlCell(renderQuotaProgress(firstNonEmpty(user.quota, user.remain_quota, user.remaining_quota, user.balance), firstNonEmpty(user.used_quota, user.usedQuota))),
-      remoteHtmlCell(remoteBadge(user.group || '-')),
-      remoteCell(userRoleLabel(user.role)),
-      remoteHtmlCell(`<div class="nai-remote-badge-list">${remoteBadge(`邀请: ${user.aff_count || 0}`)}${remoteBadge(`收益: ${formatRemoteQuota(user.aff_history_quota || 0)}`)}${user.inviter_id ? remoteBadge(`邀请人: ${user.inviter_id}`) : remoteBadge('无邀请人')}</div>`),
-      remoteCell(shortDateTime(user.created_at ?? user.created_time ?? user.createdTime)),
-      remoteCell(shortDateTime(user.last_login_at ?? user.lastLoginAt)),
-      remoteCell('-'),
-    ].join(''));
+    const rows = resource.items.map((user) => {
+      const username = firstNonEmpty(remoteValue(user, 'username'), remoteValue(user, 'name'), remoteValue(user, 'email'));
+      const displayName = remoteValue(user, 'display_name', 'displayName');
+      const inviterId = remoteValue(user, 'inviter_id', 'inviterId');
+      return [
+        remoteCell(remoteValue(user, 'id', 'uid') ?? '-'),
+        remoteHtmlCell(remoteStack(username, displayName && displayName !== username ? displayName : remoteValue(user, 'remark') || ''), 'nai-remote-wrap-cell'),
+        remoteHtmlCell(`${userStatusBadge(user)}<div class="nai-remote-cell-note">请求: ${escapeHtml(formatRemoteQuota(remoteValue(user, 'request_count', 'requestCount') || 0))}</div>`),
+        remoteHtmlCell(renderQuotaProgress(firstNonEmpty(remoteValue(user, 'quota'), remoteValue(user, 'remain_quota', 'remainQuota'), remoteValue(user, 'remaining_quota', 'remainingQuota'), remoteValue(user, 'balance')), remoteValue(user, 'used_quota', 'usedQuota'))),
+        remoteHtmlCell(remoteBadge(remoteValue(user, 'group') || '-')),
+        remoteCell(userRoleLabel(remoteValue(user, 'role'))),
+        remoteHtmlCell(`<div class="nai-remote-badge-list nai-remote-wrap-cell">${remoteBadge(`邀请: ${remoteValue(user, 'aff_count', 'affCount') || 0}`)}${remoteBadge(`收益: ${formatRemoteQuota(remoteValue(user, 'aff_history_quota', 'affHistoryQuota') || 0)}`)}${inviterId ? remoteBadge(`邀请人: ${inviterId}`) : remoteBadge('无邀请人')}</div>`),
+        remoteCell(shortDateTime(remoteValue(user, 'created_at', 'created_time', 'createdTime'))),
+        remoteCell(shortDateTime(remoteValue(user, 'last_login_at', 'lastLoginAt'))),
+        remoteCell('-'),
+      ].join('');
+    });
     renderRemoteTable(
       qs('#nai-remoteUsers'),
       '暂无用户数据。',
       ['ID', '用户名', '状态', '额度', '分组', '角色', '邀请信息', '创建时间', '最后登录', '操作'],
       rows,
-      '80px minmax(210px, 1.2fr) 130px 170px 130px 110px 240px 170px 170px 90px'
+      '80px minmax(240px, 1.1fr) 130px 170px 150px 110px minmax(280px, .9fr) 170px 170px 90px',
+      '1590px'
     );
   }
 

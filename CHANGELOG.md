@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2
+
+- Rename the left-side stats tab to key pool stats.
+- Remove duplicated key pool metrics from the center job stats panel.
+- Document per-site localStorage persistence and isolation rules.
+
 ## 0.5.1
 
 - Clear key input after successful key pool import.

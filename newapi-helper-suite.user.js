@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.5.1
+// @version      0.5.2
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
 // @author       al90slj23
 // @license      MIT
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.5.1';
+  const SCRIPT_VERSION = '0.5.2';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
@@ -2385,7 +2385,7 @@
 
             <div class="nai-key-tabs" data-nai-key-tabs>
               <button type="button" class="nai-key-tab" data-nai-key-tab="list" data-active="true">key 库列表</button>
-              <button type="button" class="nai-key-tab" data-nai-key-tab="stats" data-active="false">统计信息</button>
+              <button type="button" class="nai-key-tab" data-nai-key-tab="stats" data-active="false">key 库统计</button>
             </div>
             <div id="nai-keyListPanel" class="nai-key-tab-panel"></div>
             <div id="nai-keyStatsPanel" class="nai-key-tab-panel" hidden></div>
@@ -3890,6 +3890,14 @@
     `;
   }
 
+  function jobStatusSummary(job = state.activeJob) {
+    if (!job) return '未开始';
+    if (job.stopped) return '已结束';
+    if (job.paused) return '暂停中';
+    if (state.running) return '批次执行中';
+    return '作业中';
+  }
+
   function keyStatusSummary() {
     const entries = state.keyPool;
     const unused = entries.filter((entry) => !entry.attemptedAt).length;
@@ -3982,12 +3990,10 @@
     const stats = calculateJobStats(job);
     const runtimeConfigLabel = job ? runtimeConfigSummary(job.runtimeConfig) : '-';
     statsEl.innerHTML = [
-      statCardHtml('key 库 / 未使用', `${stats.totalKeys} / ${stats.unusedKeys}`),
-      statCardHtml('已尝试 / 已创建', `${stats.attempted} / ${stats.created}`),
-      statCardHtml('存活 / 禁用 / 未知', `${stats.alive} / ${stats.disabled} / ${stats.unknown}`),
-      statCardHtml('目标 / 阈值 / 补批', runtimeConfigLabel),
-      statCardHtml('今日累计添加', String(stats.todayCreated)),
+      statCardHtml('作业状态', jobStatusSummary(job)),
+      statCardHtml('运行策略', runtimeConfigLabel),
       statCardHtml('批次数', String(stats.batches)),
+      statCardHtml('今日创建渠道', String(stats.todayCreated)),
       statCardHtml('第一个渠道时间', formatLocalDateTime(stats.firstCreated)),
       statCardHtml('作业持续', formatDuration(stats.jobDurationMs)),
       statCardHtml('平均存活', formatDuration(stats.averageLifetimeMs)),
@@ -4076,15 +4082,7 @@
     if (runtimeSection) runtimeSection.hidden = !hasJob;
     if (actionbar) actionbar.hidden = !hasJob;
     if (statusText) {
-      statusText.textContent = !state.activeJob
-        ? '当前状态：未开始'
-        : state.activeJob.stopped
-          ? '当前状态：已结束'
-          : paused
-            ? '当前状态：暂停中'
-            : state.running
-              ? '当前状态：批次执行中'
-              : '当前状态：作业中';
+      statusText.textContent = `当前状态：${jobStatusSummary(state.activeJob)}`;
     }
     runButtons.forEach((run) => {
       run.disabled = state.running;

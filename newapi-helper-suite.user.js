@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.5.0
+// @version      0.5.1
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
 // @author       al90slj23
 // @license      MIT
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.5.0';
+  const SCRIPT_VERSION = '0.5.1';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
@@ -516,9 +516,10 @@
 
   function applyWorkspacePayload(payload, options = {}) {
     const normalized = normalizeWorkspacePayload(payload);
-    state.keyPool = normalized.keyPool.map((entry) => ({
+    state.keyPool = normalized.keyPool.map((entry, index) => ({
       key: String(entry.key || ''),
       keyPreview: entry.keyPreview || keyPreview(entry.key || ''),
+      order: Number.isFinite(Number(entry.order)) ? Number(entry.order) : index,
       addedAt: entry.addedAt || nowIso(),
       attemptedAt: entry.attemptedAt || null,
       usedAt: entry.usedAt || null,
@@ -1035,6 +1036,11 @@
         font-size: 12px;
       }
 
+      .nai-job-status-text {
+        display: block;
+        margin-top: 2px;
+      }
+
       .nai-job-empty {
         margin-top: 10px;
         padding: 10px;
@@ -1051,10 +1057,30 @@
         display: none;
       }
 
-      .nai-job-actionbar {
+      .nai-bulk-actions.nai-job-actionbar {
         margin-top: 10px;
         padding: 10px 0 0;
         background: transparent;
+        border-top: 0;
+      }
+
+      .nai-job-actionbar[hidden] {
+        display: none;
+      }
+
+      .nai-job-actionbar .nai-bulk-action {
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        gap: 7px;
+      }
+
+      .nai-action-icon {
+        display: inline-flex;
+        width: 16px;
+        justify-content: center;
+        font-weight: 900;
+        line-height: 1;
       }
 
       .nai-key-add-actions {
@@ -1656,8 +1682,21 @@
       }
 
       .nai-job-strategy-field input {
+        width: 100%;
+        box-sizing: border-box;
         min-height: 34px;
         padding: 7px 8px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 7px;
+        background: #242321;
+        color: #efeeeb;
+        outline: none;
+        font: 13px/1.35 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-job-strategy-field input:focus {
+        border-color: rgba(232, 112, 70, .72);
+        box-shadow: 0 0 0 2px rgba(232, 112, 70, .18);
       }
 
       .nai-job-strategy-unit {
@@ -1702,7 +1741,7 @@
 
       .nai-job-stats {
         display: grid;
-        grid-template-columns: repeat(4, minmax(0, 1fr));
+        grid-template-columns: repeat(3, minmax(0, 1fr));
         gap: 8px;
         margin-top: 10px;
       }
@@ -1719,6 +1758,9 @@
         color: #9a9690;
         font-size: 11px;
         font-weight: 650;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
       }
 
       .nai-job-stat-value {
@@ -2360,7 +2402,7 @@
               <div class="nai-job-status">
                 <div>
                   <strong id="nai-jobTitle">暂无作业</strong>
-                  <span id="nai-jobStatusText">未开始</span>
+                  <span id="nai-jobStatusText" class="nai-job-status-text">当前状态：未开始</span>
                 </div>
                 <button type="button" class="nai-bulk-small-button" data-nai-open-params>创建作业参数</button>
               </div>
@@ -2392,10 +2434,16 @@
                   </div>
                   <button type="button" class="nai-bulk-small-button nai-job-strategy-apply" data-nai-apply-strategy data-dirty="false" disabled>应用策略</button>
                 </div>
-              </div>
-              <div class="nai-bulk-actions nai-job-actionbar">
-                <button type="button" class="nai-bulk-action nai-bulk-action-primary" data-nai-toggle-job>开启/暂停作业</button>
-                <button type="button" class="nai-bulk-action" data-nai-refresh-job>刷新状态</button>
+                <div id="nai-jobActionBar" class="nai-bulk-actions nai-job-actionbar">
+                  <button type="button" class="nai-bulk-action nai-bulk-action-primary" data-nai-toggle-job>
+                    <span class="nai-action-icon" aria-hidden="true">⏸</span>
+                    <span>暂停作业</span>
+                  </button>
+                  <button type="button" class="nai-bulk-action" data-nai-refresh-job>
+                    <span class="nai-action-icon" aria-hidden="true">↻</span>
+                    <span>刷新状态</span>
+                  </button>
+                </div>
               </div>
             </div>
 
@@ -3680,6 +3728,7 @@
     const entry = {
       key,
       keyPreview: keyPreview(key),
+      order: state.keyPool.length,
       addedAt: nowIso(),
       attemptedAt: null,
       usedAt: null,
@@ -3717,6 +3766,8 @@
       allowLoosePrefixed: true,
     });
     if (added > 0) {
+      const keyInput = qs('#nai-keys');
+      if (keyInput) keyInput.value = '';
       appendLog(`已添加 ${added} 个 key 到 key 库。`);
     } else {
       appendLog('没有发现新的有效 key，或这些 key 已经在库中。');
@@ -3772,8 +3823,20 @@
     return (job?.keys || state.keyPool).filter((entry) => entry.channelId || entry.channelCreatedAt);
   }
 
+  function entryImportOrder(entry, fallbackIndex) {
+    const order = Number(entry?.order);
+    return Number.isFinite(order) ? order : fallbackIndex;
+  }
+
+  function entriesInImportOrder(entries) {
+    return entries
+      .map((entry, index) => ({ entry, index }))
+      .sort((a, b) => entryImportOrder(a.entry, a.index) - entryImportOrder(b.entry, b.index) || a.index - b.index)
+      .map(({ entry }) => entry);
+  }
+
   function availableEntries(job) {
-    return (job?.keys || state.keyPool).filter((entry) => !entry.attemptedAt);
+    return entriesInImportOrder((job?.keys || state.keyPool).filter((entry) => !entry.attemptedAt));
   }
 
   function calculateJobStats(job = state.activeJob) {
@@ -3998,6 +4061,7 @@
     const exportButton = qs('[data-nai-export-job]');
     const applyStrategy = qs('[data-nai-apply-strategy]');
     const openParams = qs('[data-nai-open-params]');
+    const actionbar = qs('#nai-jobActionBar');
     const jobTitle = qs('#nai-jobTitle');
     const emptyState = qs('#nai-jobEmptyState');
     const runtimeSection = qs('#nai-jobRuntimeSection');
@@ -4010,16 +4074,17 @@
     if (jobTitle) jobTitle.textContent = state.activeJob?.name || '暂无作业';
     if (emptyState) emptyState.hidden = hasJob;
     if (runtimeSection) runtimeSection.hidden = !hasJob;
+    if (actionbar) actionbar.hidden = !hasJob;
     if (statusText) {
       statusText.textContent = !state.activeJob
-        ? '未开始'
+        ? '当前状态：未开始'
         : state.activeJob.stopped
-          ? '已结束'
+          ? '当前状态：已结束'
           : paused
-            ? '已暂停'
+            ? '当前状态：暂停中'
             : state.running
-              ? '批次执行中'
-              : '监控中';
+              ? '当前状态：批次执行中'
+              : '当前状态：作业中';
     }
     runButtons.forEach((run) => {
       run.disabled = state.running;
@@ -4027,13 +4092,13 @@
     });
     if (toggleJob) {
       toggleJob.disabled = state.running || !active;
-      toggleJob.textContent = !hasJob
-        ? '开启/暂停作业'
+      toggleJob.innerHTML = !hasJob
+        ? '<span class="nai-action-icon" aria-hidden="true">-</span><span>暂无作业</span>'
         : paused
-          ? '开启作业'
+          ? '<span class="nai-action-icon" aria-hidden="true">▶</span><span>开启作业</span>'
           : active
-            ? '暂停作业'
-            : '作业已结束';
+            ? '<span class="nai-action-icon" aria-hidden="true">⏸</span><span>暂停作业</span>'
+            : '<span class="nai-action-icon" aria-hidden="true">✓</span><span>作业已结束</span>';
     }
     if (refresh) refresh.disabled = !state.activeJob || state.monitorBusy || state.running;
     if (exportButton) exportButton.disabled = !state.activeJob;
@@ -4141,14 +4206,19 @@
     job.batches.push(batch);
     recordJobLog(job, `开始第 ${batch.no} 批：${reason}，计划 ${selected.length} 个。`);
 
-    const rows = buildRowsForKeys(config, selected.map((entry) => entry.key), job.nextIndex || 0);
-    job.nextIndex = (job.nextIndex || 0) + rows.length;
+    ensureNameSeed(config, selected.map((entry) => entry.key));
     const delay = Math.max(0, Number.parseInt(config.delayMs || '0', 10) || 0);
 
-    for (let i = 0; i < rows.length; i += 1) {
+    for (let i = 0; i < selected.length; i += 1) {
       if (job.stopped || job.paused) break;
       const entry = selected[i];
-      const row = rows[i];
+      const rowIndex = job.nextIndex || 0;
+      const row = {
+        index: rowIndex,
+        key: entry.key,
+        name: makeName(config, entry.key, rowIndex),
+      };
+      job.nextIndex = rowIndex + 1;
       entry.attemptedAt = nowIso();
       entry.usedAt = entry.attemptedAt;
       entry.channelName = row.name;
@@ -4177,17 +4247,17 @@
           entry.statusText = statusLabel(entry.status);
         }
         batch.success += 1;
-        recordJobLog(job, `OK 第 ${batch.no} 批 ${i + 1}/${rows.length}: ${row.name} (${keyPreview(row.key)})`);
+        recordJobLog(job, `OK 第 ${batch.no} 批 ${i + 1}/${selected.length}: ${row.name} (${keyPreview(row.key)})`);
       } catch (err) {
         batch.failed += 1;
         entry.error = err.message;
         entry.statusText = '创建失败';
-        recordJobLog(job, `FAIL 第 ${batch.no} 批 ${i + 1}/${rows.length}: ${row.name} - ${err.message}`, 'error');
+        recordJobLog(job, `FAIL 第 ${batch.no} 批 ${i + 1}/${selected.length}: ${row.name} - ${err.message}`, 'error');
         if (!config.continueOnError) break;
       }
 
       updateJobStats();
-      if (delay > 0 && i < rows.length - 1) await sleep(delay);
+      if (delay > 0 && i < selected.length - 1) await sleep(delay);
     }
 
     batch.endedAt = nowIso();
@@ -4668,6 +4738,28 @@
       .trim();
   }
 
+  function elementSearchText(el) {
+    const childSignals = qsa('[class], [data-icon], [aria-label], [title]', el)
+      .slice(0, 12)
+      .map((node) => [
+        node.getAttribute('class'),
+        node.getAttribute('data-icon'),
+        node.getAttribute('aria-label'),
+        node.getAttribute('title'),
+      ].filter(Boolean).join(' '))
+      .filter(Boolean)
+      .join(' ');
+    return [
+      elementLabel(el),
+      el.id,
+      el.getAttribute('class'),
+      el.getAttribute('data-testid'),
+      el.getAttribute('data-test-id'),
+      el.getAttribute('data-slot'),
+      childSignals,
+    ].filter(Boolean).join(' ');
+  }
+
   function findHostRefreshButton() {
     const panel = document.getElementById(SCRIPT_ID);
     const controls = qsa('button, [role="button"], a');
@@ -4675,9 +4767,9 @@
       if (panel?.contains(el)) return false;
       if (el.classList?.contains('nai-bulk-button')) return false;
       if (el.disabled || el.getAttribute('aria-disabled') === 'true') return false;
-      const label = elementLabel(el);
-      if (!/(^|\s)(刷新|Refresh|Reload)(\s|$)/i.test(label)) return false;
-      return !/(余额|Balance|凭证|Credential|模型|Model|详情|Details|全部|All|上游|Upstream)/i.test(label);
+      const text = elementSearchText(el);
+      if (!/(刷新|重新加载|Refresh|Reload|refresh|reload)/i.test(text)) return false;
+      return !/(余额|Balance|凭证|Credential|模型|Model|详情|Details|上游|Upstream|站点|Site)/i.test(text);
     });
   }
 

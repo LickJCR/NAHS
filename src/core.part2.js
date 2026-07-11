@@ -12,7 +12,12 @@
 
   function normalizeChannelResult(result) {
     const data = result?.data ?? result;
+    if (Array.isArray(data)) return data[0] || null;
     if (!data || typeof data !== 'object') return null;
+    const singleLists = [data.items, data.channels, data.list, data.rows];
+    for (const list of singleLists) {
+      if (Array.isArray(list) && list.length === 1) return list[0];
+    }
     return data.channel || data.item || data;
   }
 

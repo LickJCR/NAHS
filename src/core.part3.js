@@ -247,7 +247,11 @@
         }
       }
       if (!result) throw lastError || new Error('读取失败');
-      resource.items = options.normalize(result);
+      let items = options.normalize(result);
+      if (typeof options.afterNormalize === 'function') {
+        items = await options.afterNormalize(items, result);
+      }
+      resource.items = items;
       resource.loaded = true;
       resource.updatedAt = nowIso();
       resource.meta = { endpoint };
@@ -264,6 +268,49 @@
     }
   }
 
+  function remoteChannelId(channel) {
+    if (!channel || typeof channel !== 'object') return '';
+    return channel.id ?? channel.Id ?? channel.ID ?? channel.channel_id ?? channel.channelId ?? '';
+  }
+
+  async function readRemoteChannelDetail(channel) {
+    const id = remoteChannelId(channel);
+    if (!id) return channel;
+    const endpoints = [
+      apiUrl(collectConfig(false), `/${encodeURIComponent(id)}`),
+      apiUrl(collectConfig(false), `?id=${encodeURIComponent(id)}`),
+    ];
+    let lastError = null;
+    for (const endpoint of endpoints) {
+      try {
+        const result = await apiRequest(endpoint);
+        if (!endpointResultOk(result)) throw new Error(result?.message || '读取渠道详情失败');
+        const detail = normalizeChannelResult(result);
+        if (detail && typeof detail === 'object') {
+          return { ...channel, ...detail, __nahsDetailLoaded: true };
+        }
+      } catch (err) {
+        lastError = err;
+      }
+    }
+    return { ...channel, __nahsDetailError: lastError?.message || '读取渠道详情失败' };
+  }
+
+  async function enrichRemoteChannelDetails(channels) {
+    if (!Array.isArray(channels) || !channels.length) return [];
+    const result = channels.slice();
+    let cursor = 0;
+    const worker = async () => {
+      while (cursor < channels.length) {
+        const index = cursor;
+        cursor += 1;
+        result[index] = await readRemoteChannelDetail(channels[index]);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(6, channels.length) }, worker));
+    return result;
+  }
+
   async function loadRemoteChannels() {
     const params = new URLSearchParams({
       p: '1',
@@ -273,6 +320,7 @@
     return loadRemoteResource('channels', {
       endpoints: [apiUrl(collectConfig(false), `?${params.toString()}`)],
       normalize: channelsFromListResult,
+      afterNormalize: enrichRemoteChannelDetails,
       successPrefix: '已读取渠道列表',
       errorPrefix: '读取渠道列表失败',
     });

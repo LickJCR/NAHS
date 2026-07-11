@@ -37,10 +37,12 @@ const preamble = trimTrailingNewlines(await readSource('src/runtime/preamble.js'
 const styles = [
   await readSource('src/styles.part1.css'),
   await readSource('src/styles.part2.css'),
+  await readSource('src/styles.part3.css'),
 ].join('\n');
 const ui = [
   await readSource('src/ui.part1.js'),
   await readSource('src/ui.part2.js'),
+  await readSource('src/ui.part3.js'),
 ].map(trimTrailingNewlines).join('\n\n');
 const core = [
   await readSource('src/core.part1.js'),

@@ -1,0 +1,211 @@
+      .nai-remote-channel-table {
+        width: 100%;
+      }
+
+      .nai-remote-action-head,
+      .nai-remote-action-cell {
+        position: sticky;
+        right: 0;
+        z-index: 2;
+        background: #141312;
+        box-shadow: -1px 0 0 rgba(255, 255, 255, .08);
+      }
+
+      .nai-remote-action-head {
+        z-index: 3;
+        background: #242321;
+      }
+
+      .nai-remote-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 6px;
+      }
+
+      .nai-remote-action-button {
+        min-height: 26px;
+        padding: 4px 8px;
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 6px;
+        background: #242321;
+        color: #efeeeb;
+        cursor: pointer;
+        font: 750 12px/1 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-remote-action-button:hover,
+      .nai-remote-action-button:focus {
+        border-color: rgba(232, 112, 70, .68);
+        outline: none;
+      }
+
+      .nai-remote-action-button[data-variant="primary"] {
+        border-color: rgba(232, 112, 70, .45);
+        background: rgba(232, 112, 70, .18);
+        color: #fff4ee;
+      }
+
+      .nai-remote-dialog-backdrop {
+        position: fixed;
+        inset: 0;
+        z-index: 2147483647;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 28px;
+        background: rgba(0, 0, 0, .58);
+      }
+
+      .nai-remote-dialog {
+        width: min(1040px, calc(100vw - 56px));
+        max-height: calc(100vh - 56px);
+        display: flex;
+        flex-direction: column;
+        overflow: hidden;
+        border: 1px solid rgba(255, 255, 255, .14);
+        border-radius: 10px;
+        background: #171615;
+        box-shadow: 0 24px 70px rgba(0, 0, 0, .55);
+        color: #efeeeb;
+      }
+
+      .nai-remote-dialog header,
+      .nai-remote-dialog footer {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 14px;
+        border-bottom: 1px solid rgba(255, 255, 255, .1);
+        background: #1f1e1c;
+      }
+
+      .nai-remote-dialog footer {
+        justify-content: flex-end;
+        border-top: 1px solid rgba(255, 255, 255, .1);
+        border-bottom: 0;
+      }
+
+      .nai-remote-dialog header strong {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: 14px;
+      }
+
+      .nai-remote-dialog-x {
+        margin-left: auto;
+        width: 30px;
+        height: 30px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 7px;
+        background: #242321;
+        color: #efeeeb;
+        cursor: pointer;
+        font: 850 18px/1 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-remote-dialog-body {
+        min-height: 0;
+        overflow: auto;
+        padding: 14px;
+      }
+
+      .nai-remote-detail-grid {
+        display: grid;
+        grid-template-columns: 180px minmax(0, 1fr);
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        overflow: hidden;
+      }
+
+      .nai-remote-detail-key,
+      .nai-remote-detail-value {
+        min-width: 0;
+        padding: 9px 11px;
+        border-bottom: 1px solid rgba(255, 255, 255, .08);
+        color: #d8d3cd;
+        font-size: 12px;
+      }
+
+      .nai-remote-detail-key {
+        background: #201f1d;
+        color: #efeeeb;
+        font-weight: 750;
+      }
+
+      .nai-remote-detail-value span,
+      .nai-remote-detail-value pre,
+      .nai-remote-json-block pre {
+        margin: 0;
+        white-space: pre-wrap;
+        overflow-wrap: anywhere;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .nai-remote-json-block {
+        margin-top: 12px;
+        padding: 12px;
+        border: 1px solid rgba(255, 255, 255, .1);
+        border-radius: 8px;
+        background: #11100f;
+        color: #cfcac2;
+        font-size: 12px;
+      }
+
+      .nai-remote-edit-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 12px;
+      }
+
+      .nai-remote-edit-grid label {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+        color: #d7d4cf;
+        font-size: 12px;
+        font-weight: 650;
+      }
+
+      .nai-remote-edit-grid input,
+      .nai-remote-edit-grid select,
+      .nai-remote-edit-grid textarea {
+        width: 100%;
+        box-sizing: border-box;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 7px;
+        background: #242321;
+        color: #efeeeb;
+        outline: none;
+        padding: 9px 10px;
+        font: 13px/1.35 ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      .nai-remote-edit-grid textarea {
+        min-height: 78px;
+        resize: vertical;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      }
+
+      .nai-remote-edit-json {
+        grid-column: 1 / -1;
+      }
+
+      .nai-remote-edit-json textarea {
+        min-height: 220px;
+      }
+
+      .nai-remote-dialog-status {
+        margin-right: auto;
+        color: #aaa7a1;
+        font-size: 12px;
+      }
+
+      .nai-remote-dialog-status[data-variant="ok"] {
+        color: #8fe0b3;
+      }
+
+      .nai-remote-dialog-status[data-variant="error"] {
+        color: #ffaaa4;
+      }

@@ -157,6 +157,11 @@
         selectRemoteSite(remoteSite.getAttribute('data-nai-remote-site') || '');
         return;
       }
+      const remoteAction = event.target.closest('[data-nai-remote-action]');
+      if (remoteAction) {
+        handleRemoteListAction(remoteAction);
+        return;
+      }
       const jobTab = event.target.closest('[data-nai-job-tab]');
       if (jobTab) {
         setJobTab(jobTab.getAttribute('data-nai-job-tab') || 'stats');

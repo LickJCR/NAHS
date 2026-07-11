@@ -4,6 +4,12 @@
 
 - No unreleased changes.
 
+## 0.7.4
+
+- Fetch remote channel details after loading the channel list so channel table columns show type, status, models, groups, quota, and test data when the NewAPI list endpoint only returns summaries.
+- Add remote list detail dialogs for channels, logs, and users, plus a channel edit dialog that saves through NewAPI update endpoints.
+- Stabilize remote table widths and keep the operation column visible.
+
 ## 0.7.3
 
 - Prevent remote channel, log, and user list long fields from being clipped by single-line table cells.

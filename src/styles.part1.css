@@ -582,7 +582,7 @@
       }
 
       .nai-remote-channel-table {
-        min-width: 920px;
+        min-width: max-content;
         display: grid;
         grid-template-columns: 90px minmax(240px, 1.4fr) minmax(160px, .85fr) minmax(130px, .7fr) 110px 120px;
       }
@@ -609,6 +609,111 @@
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+      }
+
+      .nai-remote-stack {
+        min-width: 0;
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+
+      .nai-remote-stack > span {
+        min-width: 0;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .nai-remote-stack small,
+      .nai-remote-cell-note,
+      .nai-remote-muted {
+        color: #aaa7a1;
+        font-size: 11px;
+        line-height: 1.35;
+      }
+
+      .nai-remote-badge-list {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 5px;
+      }
+
+      .nai-remote-badge {
+        max-width: 100%;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 22px;
+        padding: 2px 7px;
+        border: 1px solid rgba(255, 255, 255, .12);
+        border-radius: 6px;
+        background: rgba(255, 255, 255, .06);
+        color: #e8e4df;
+        font-size: 11px;
+        font-weight: 750;
+        line-height: 1.25;
+        white-space: nowrap;
+      }
+
+      .nai-remote-badge[data-variant="success"] {
+        border-color: rgba(59, 168, 107, .34);
+        background: rgba(59, 168, 107, .14);
+        color: #8fe0b3;
+      }
+
+      .nai-remote-badge[data-variant="warning"] {
+        border-color: rgba(226, 163, 65, .35);
+        background: rgba(226, 163, 65, .15);
+        color: #ffd18a;
+      }
+
+      .nai-remote-badge[data-variant="destructive"] {
+        border-color: rgba(230, 89, 89, .35);
+        background: rgba(230, 89, 89, .14);
+        color: #ffaaa4;
+      }
+
+      .nai-remote-badge[data-variant="info"] {
+        border-color: rgba(86, 151, 220, .35);
+        background: rgba(86, 151, 220, .14);
+        color: #a8cdf5;
+      }
+
+      .nai-remote-quota {
+        width: 150px;
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+      }
+
+      .nai-remote-quota div {
+        display: flex;
+        justify-content: space-between;
+        gap: 8px;
+        font-size: 11px;
+      }
+
+      .nai-remote-quota strong {
+        color: #efeeeb;
+      }
+
+      .nai-remote-quota span {
+        color: #aaa7a1;
+      }
+
+      .nai-remote-quota i {
+        height: 6px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: rgba(255, 255, 255, .08);
+      }
+
+      .nai-remote-quota b {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: #e87046;
       }
 
       .nai-empty-state {

@@ -4,6 +4,12 @@
 
 - No unreleased changes.
 
+## 0.7.1
+
+- Align remote channel, usage-log, and user list columns with NewAPI default table order and labels.
+- Render remote list cells with NewAPI-style badges, stacked secondary text, quota progress, and readonly actions columns.
+- Prefer NewAPI default `/api/log` for remote usage logs before falling back to `/api/log/self`.
+
 ## 0.7.0
 
 - Convert remote mode from a single connection into up to five independent NewAPI sites.

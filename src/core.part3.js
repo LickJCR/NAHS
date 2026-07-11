@@ -285,8 +285,8 @@
     });
     return loadRemoteResource('logs', {
       endpoints: [
-        `/api/log/?${params.toString()}`,
         `/api/log?${params.toString()}`,
+        `/api/log/?${params.toString()}`,
         `/api/log/self?${params.toString()}`,
       ],
       normalize: listItemsFromResult,

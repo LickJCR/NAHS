@@ -4,6 +4,10 @@
 
 - No unreleased changes.
 
+## 0.7.7
+
+- Make the top-bar reset clear remote-mode saved sites, remote connection status, remote config fields, list caches, and workspace data instead of only clearing the batch workspace.
+
 ## 0.7.6
 
 - Switch userscript install and update URLs to the `refs/heads/main` raw path to avoid the older `/main/` raw CDN cache returning stale versions.

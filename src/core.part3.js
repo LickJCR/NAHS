@@ -23,7 +23,10 @@
   }
 
   function resetWorkspace() {
-    const ok = window.confirm('确认重置当前工作？这会清空 key 池、作业、批次和日志，并停止监控。');
+    const resetRemoteMode = state.operationMode === 'remote';
+    const ok = window.confirm(resetRemoteMode
+      ? '确认重置远端模式？这会清空已保存的远端台子、连接状态、key 池、作业、批次和日志，并停止监控。'
+      : '确认重置当前工作？这会清空 key 池、作业、批次和日志，并停止监控。');
     if (!ok) return;
     if (state.monitorTimer) {
       clearInterval(state.monitorTimer);
@@ -42,6 +45,19 @@
     state.randomCodes = new Map();
     state.remoteResources = defaultRemoteResources();
     localStorage.removeItem(WORKSPACE_STORAGE_KEY);
+    if (resetRemoteMode) {
+      state.remoteTab = 'bulk';
+      state.activeRemoteSiteId = '';
+      state.remoteSites = [];
+      state.remoteConfig = { ...DEFAULT_REMOTE_CONFIG };
+      state.remoteConnection = defaultRemoteConnection();
+      state.groups = [];
+      state.groupsLoaded = false;
+      state.templates = [];
+      state.templatesLoaded = false;
+      localStorage.removeItem(REMOTE_SITES_STORAGE_KEY);
+      localStorage.removeItem(REMOTE_CONFIG_STORAGE_KEY);
+    }
     resetFormToDefaults();
     const keyInput = qs('#nai-keys');
     if (keyInput) keyInput.value = '';

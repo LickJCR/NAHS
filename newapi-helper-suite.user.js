@@ -1,7 +1,7 @@
 // ==UserScript==
 // @name         NAHS - NewAPI Helper Suite
 // @namespace    https://github.com/QuantumNous/new-api
-// @version      0.7.1
+// @version      0.7.2
 // @description  NewAPI helper userscript suite for channel jobs, key pool automation, monitoring, and future operational alerts.
 // @author       LickJCR
 // @license      MIT
@@ -23,7 +23,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.7.1';
+  const SCRIPT_VERSION = '0.7.2';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
@@ -1559,7 +1559,8 @@
       }
 
       .nai-remote-channel-table {
-        min-width: max-content;
+        width: max-content;
+        min-width: 100%;
         display: grid;
         grid-template-columns: 90px minmax(240px, 1.4fr) minmax(160px, .85fr) minmax(130px, .7fr) 110px 120px;
       }
@@ -4265,6 +4266,14 @@
     return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);
   }
 
+  function remoteValue(row, ...keys) {
+    if (!row || typeof row !== 'object') return undefined;
+    for (const key of keys) {
+      if (row[key] !== undefined && row[key] !== null && row[key] !== '') return row[key];
+    }
+    return undefined;
+  }
+
   function shortDateTime(value) {
     if (!value) return '-';
     const numeric = Number(value);
@@ -4349,14 +4358,14 @@
     `;
   }
 
-  function renderRemoteTable(host, emptyText, columns, rows, gridTemplate) {
+  function renderRemoteTable(host, emptyText, columns, rows, gridTemplate, minWidth = '100%') {
     if (!host) return;
     if (!rows.length) {
       host.innerHTML = `<div class="nai-empty-state">${escapeHtml(emptyText)}</div>`;
       return;
     }
     host.innerHTML = `
-      <div class="nai-remote-channel-table" style="grid-template-columns: ${escapeHtml(gridTemplate)};">
+      <div class="nai-remote-channel-table" style="grid-template-columns: ${escapeHtml(gridTemplate)}; min-width: ${escapeHtml(minWidth)};">
         ${columns.map((column) => `<div class="nai-remote-channel-head">${escapeHtml(column)}</div>`).join('')}
         ${rows.join('')}
       </div>
@@ -4364,7 +4373,7 @@
   }
 
   function channelStatusBadge(channel) {
-    const status = Number(channel.status);
+    const status = Number(remoteValue(channel, 'status', 'Status'));
     let label = '未知';
     let variant = 'neutral';
     if (status === 1) {
@@ -4377,7 +4386,7 @@
       label = '自动禁用';
       variant = 'warning';
     }
-    const info = channel.channel_info || channel.channelInfo || {};
+    const info = remoteValue(channel, 'channel_info', 'channelInfo', 'ChannelInfo') || {};
     const size = Number(info.multi_key_size || info.multiKeySize || 0);
     if (size > 0) {
       const disabled = info.multi_key_status_list && typeof info.multi_key_status_list === 'object'
@@ -4454,18 +4463,18 @@
       '尚未读取远端渠道。'
     );
     const rows = resource.items.map((channel) => [
-      remoteCell(channel.id ?? '-'),
-      remoteHtmlCell(remoteStack(channel.name || '(未命名)', channel.remark || ''), 'nai-remote-channel-name'),
-      remoteHtmlCell(remoteBadge(channelTypeName(channel.type))),
+      remoteCell(remoteValue(channel, 'id', 'Id', 'ID') ?? '-'),
+      remoteHtmlCell(remoteStack(remoteValue(channel, 'name', 'Name') || '(未命名)', remoteValue(channel, 'remark', 'Remark') || ''), 'nai-remote-channel-name'),
+      remoteHtmlCell(remoteBadge(channelTypeName(remoteValue(channel, 'type', 'Type')))),
       remoteHtmlCell(channelStatusBadge(channel)),
-      remoteHtmlCell(remoteBadgeList(channel.models)),
-      remoteHtmlCell(remoteBadgeList(channel.group)),
-      remoteHtmlCell(channel.tag ? remoteBadge(channel.tag) : '<span class="nai-remote-muted">-</span>'),
-      remoteCell(channel.priority ?? 0),
-      remoteCell(channel.weight ?? 0),
-      remoteHtmlCell(remoteStack(`已用: ${formatRemoteQuota(channel.used_quota || 0)}`, `剩余: ${formatRemoteQuota(channel.balance || 0)}`)),
-      remoteHtmlCell(remoteBadge(formatResponseMs(channel.response_time))),
-      remoteHtmlCell(remoteStack(remoteRelativeTime(channel.test_time), shortDateTime(channel.test_time))),
+      remoteHtmlCell(remoteBadgeList(remoteValue(channel, 'models', 'Models'))),
+      remoteHtmlCell(remoteBadgeList(remoteValue(channel, 'group', 'Group'))),
+      remoteHtmlCell(remoteValue(channel, 'tag', 'Tag') ? remoteBadge(remoteValue(channel, 'tag', 'Tag')) : '<span class="nai-remote-muted">-</span>'),
+      remoteCell(remoteValue(channel, 'priority', 'Priority') ?? 0),
+      remoteCell(remoteValue(channel, 'weight', 'Weight') ?? 0),
+      remoteHtmlCell(remoteStack(`已用: ${formatRemoteQuota(remoteValue(channel, 'used_quota', 'usedQuota', 'UsedQuota') || 0)}`, `剩余: ${formatRemoteQuota(remoteValue(channel, 'balance', 'Balance') || 0)}`)),
+      remoteHtmlCell(remoteBadge(formatResponseMs(remoteValue(channel, 'response_time', 'responseTime', 'ResponseTime')))),
+      remoteHtmlCell(remoteStack(remoteRelativeTime(remoteValue(channel, 'test_time', 'testTime', 'TestTime')), shortDateTime(remoteValue(channel, 'test_time', 'testTime', 'TestTime')))),
       remoteCell('-'),
     ].join(''));
     renderRemoteTable(
@@ -4473,7 +4482,8 @@
       '暂无渠道数据。',
       ['ID', '名称', '类型', '状态', '模型', '分组', '标签', '优先级', '权重', '已使用 / 剩余', '响应', '上次测试', '操作'],
       rows,
-      '80px minmax(220px, 1.4fr) 150px 130px minmax(190px, 1fr) minmax(150px, .8fr) 110px 90px 80px 170px 110px 150px 90px'
+      '80px minmax(220px, 1.4fr) 150px 130px minmax(190px, 1fr) minmax(150px, .8fr) 110px 90px 80px 170px 110px 150px 90px',
+      '1780px'
     );
   }
 

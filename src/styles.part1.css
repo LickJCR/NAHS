@@ -582,7 +582,8 @@
       }
 
       .nai-remote-channel-table {
-        min-width: max-content;
+        width: max-content;
+        min-width: 100%;
         display: grid;
         grid-template-columns: 90px minmax(240px, 1.4fr) minmax(160px, .85fr) minmax(130px, .7fr) 110px 120px;
       }

@@ -4,6 +4,11 @@
 
 - No unreleased changes.
 
+## 0.7.2
+
+- Fix remote channel list rendering so all NewAPI columns remain visible in a horizontal table.
+- Add field-name compatibility for channel list rows returned with camelCase or legacy capitalized keys.
+
 ## 0.7.1
 
 - Align remote channel, usage-log, and user list columns with NewAPI default table order and labels.

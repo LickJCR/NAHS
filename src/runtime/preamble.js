@@ -2,7 +2,7 @@
   'use strict';
 
   const SCRIPT_ID = 'nai-bulk-channel-importer';
-  const SCRIPT_VERSION = '0.7.1';
+  const SCRIPT_VERSION = '0.7.2';
   const TOOL_MARK = 'NACP';
   const STORAGE_KEY = 'nai:bulk-channel-importer:v1';
   const WORKSPACE_STORAGE_KEY = 'nai:bulk-channel-importer:workspace:v1';
